@@ -1,0 +1,22 @@
+/**
+ * A 16-bit counter.
+ * if      reset(t): out(t+1) = 0
+ * else if load(t):  out(t+1) = in(t)
+ * else if inc(t):   out(t+1) = out(t) + 1
+ * else              out(t+1) = out(t)
+ */
+CHIP PC {
+    IN in[16], inc, load, reset;
+    OUT out[16];
+
+    PARTS:
+    Mux16(a=prevOut, b=in, sel=load, out=step1Out); // Choose either the previous output or the current input based on the load flag.
+    Inc16(in=step1Out, out=incOut); // Increment step1Out by 1 and store the result.
+
+    Not(in=load, out=loadComp);
+    And(a=loadComp, b=inc, out=shouldInc); // Allow increment only if the load bit is false.
+    Mux16(a=step1Out, b=incOut, sel=shouldInc, out=step2Out); // Choose between the incremented value of step1Out or step1Out itself before increment based on the result of the previous condition.
+
+    Mux16(a=step2Out, b[0..15]=false, sel=reset, out=step3Out); // Before committing the value to the register, check if the counter should be reset to zero.
+    Register(in=step3Out, load=true, out=out, out=prevOut); // Commit the value to the register every cycle regardless of the load bit, but the value to be commited depends on the operations performed in the previous steps.
+}
