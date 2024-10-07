@@ -7,4 +7,51 @@
 // (R0, R1, R2 refer to RAM[0], RAM[1], and RAM[2], respectively.)
 // The algorithm is based on repetitive addition.
 
-//// Replace this comment with your code.
+
+@R0 
+D=M
+@R0_NEGATIVE 
+D;JLT 
+@i 
+M=D
+@LOOP 
+0;JMP
+
+(R0_NEGATIVE)
+D=!D
+D=D+1 
+@i 
+M=D
+
+(LOOP)
+@i 
+D=M 
+@FIX_SIGN 
+D;JEQ
+
+@R1 
+D=M 
+@R2 
+M=M+D
+@i 
+M=M-1
+@LOOP 
+0;JMP
+
+(FIX_SIGN)
+@R0 
+D=M 
+@COMPLEMENT_RESULT 
+D;JLT  
+
+(END)
+@END
+0;JMP
+
+(COMPLEMENT_RESULT) 
+@R2 
+M=!M 
+M=M+1
+
+@END
+0;JMP
