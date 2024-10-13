@@ -25,5 +25,21 @@ CHIP Memory {
     OUT out[16];
 
     PARTS:
-	//// Replace this comment with your code.
+
+    // address[0] is least significant bit
+    // address[14] is most significant bit
+    // Ram address range : 0 to 16,383
+    // Screen address range : 16,384 to 24,575
+    // Keyboard address : 24,576
+    
+    DMux(in=load,sel=address[14],a=loadFirstHalf,b=loadSecondHalf);
+    
+    RAM16K(in=in,load=loadFirstHalf,address=address[0..13],out=ramOut); 
+    
+    Screen(in=in,load=loadSecondHalf,address=address[0..12],out=screenOut); 
+    
+    Keyboard(out=keyboardOut); 
+    
+    Mux4Way16(a=ramOut,b=ramOut,c=screenOut,d=keyboardOut,sel=address[13..14],out=out);
+
 }
