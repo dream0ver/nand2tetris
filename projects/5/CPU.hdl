@@ -79,7 +79,6 @@ CHIP CPU {
     ARegister(
         in=Amuxout,
         load=loadA,
-        out[15]=false,
         out[0..14]=addressM,
         out=Aregout
     );
@@ -106,6 +105,16 @@ CHIP CPU {
         ng=ngOut
     );
 
+    Not(
+        in=ngOut,
+        out=notngOut
+    );
+
+    /*
+    JMP
+    JNE
+    */
+
     And(
         a=instruction[1],
         b=zrOut,
@@ -118,38 +127,39 @@ CHIP CPU {
         out=JLT
     );
 
-    Or(
-        a=JEQ,
-        b=JLT,
-        out=JEQorJLT
-    );
-
-    Not(
-        in=JEQorJLT,
+    And(
+        a=instruction[0],
+        b=notngOut,
         out=JGT
     );
 
-    And(
+    Or(
+        a=JEQ,
+        b=JLT,
+        out=JLE
+    );
+
+    Or(
         a=JEQ,
         b=JGT,
         out=JGE
     );
 
-    And(
-        a=JLT,
-        b=JEQ,
-        out=JLE
-    );
-
-    And(
+    Or(
         a=JGT,
         b=JLT,
         out=JNE
     );
 
     And(
-        a=JLE,
-        b=JGE,
+        a=instruction[0],
+        b=instruction[1],
+        out=jmphalf
+    );
+
+    And(
+        a=instruction[2],
+        b=jmphalf,
         out=JMP
     );
 
@@ -157,31 +167,24 @@ CHIP CPU {
         in[0]=JEQ,
         in[1]=JLT,
         in[2]=JGT,
-        in[3]=JGE,
-        in[4]=JLE,
+        in[3]=JLE,
+        in[4]=JGE,
         in[5]=JNE,
         in[6]=JMP,
         in[7]=false,
-        out=shouldjump
-    );
-
-    And(
-        a=shouldjump,
-        b=instruction[15],
         out=loadPC
     );
 
     Not(
         in=loadPC,
-        out=incrementPC
+        out=incPC
     );
 
     PC(
         in=Aregout,
-        reset=reset,
-        inc=incrementPC,
+        inc=incPC,
         load=loadPC,
-        out[0]=false,
+        reset=reset,
         out[0..14]=pc
     );
 
