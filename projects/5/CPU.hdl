@@ -32,5 +32,153 @@ CHIP CPU {
         pc[15];          // address of next instruction
 
     PARTS:
-	//// Replace this comment with your code.
+    
+    And(
+        a=instruction[15],
+        b=instruction[4],
+        out=should_load_D
+    );  
+    
+    DRegister(
+        in=outM,
+        load=should_load_D,
+        out=D_reg_out
+    );
+
+    And(
+        a=instruction[15],
+        b=instruction[3],
+        out=writeM
+    );
+
+    Mux16(
+        a=addressM,
+        b=inM,
+        sel=instruction[12],
+        out=B_mux_out
+    );
+
+    And(
+        a=instruction[5],
+        b=instruction[15],
+        out=is_dest_A
+    );
+
+    Nand(
+        a=instruction[15],
+        b=true,
+        out=is_A_ins
+    );
+
+    Or(
+        a=is_dest_A,
+        b=is_A_ins,
+        out=should_load_A
+    );
+
+    ARegister(
+        in=A_mux_out,
+        load=should_load_A,
+        out=addressM
+    );
+
+    Mux16(
+        a=instruction,
+        b=outM,
+        sel=instruction[15],
+        out=A_mux_out
+    );
+    
+    ALU(
+        x=D_reg_out,
+        y=B_mux_out,
+        zx=instruction[11],
+        nx=instruction[10],
+        zy=instruction[9],
+        ny=instruction[8],
+        f=instruction[7],
+        no=instruction[6],
+        out=outM,
+        zr=zrOut,
+        ng=ngOut
+    );
+
+    And(
+        a=instruction[1],
+        b=zrOut,
+        out=JEQ
+    );
+    
+    And(
+        a=instruction[2],
+        b=ngOut,
+        out=JLT
+    );
+
+    Or(
+        a=JEQ,
+        b=JLT,
+        out=JEQ_or_JLT
+    );
+
+    Not(
+        in=JEQ_or_JLT,
+        out=JGT
+    );
+
+    And(
+        a=JEQ,
+        b=JGT,
+        out=JGE
+    );
+
+    And(
+        a=JLT,
+        b=JEQ,
+        out=JLE
+    );
+
+    And(
+        a=JGT,
+        b=JLT,
+        out=JNE
+    );
+
+    And(
+        a=JLE,
+        b=JGE,
+        out=JMP
+    );
+
+    Or8Way(
+        in[0]=JEQ,
+        in[1]=JLT,
+        in[2]=JGT,
+        in[3]=JGE,
+        in[4]=JLE,
+        in[5]=JNE,
+        in[6]=JMP,
+        in[7]=false,
+        out=should_jump
+    );
+
+    And(
+        a=should_jump,
+        b=instruction[15],
+        out=should_load_pc
+    );
+
+    Not(
+        in=should_load_pc,
+        should_increment_pc
+    );
+
+    PC(
+        in=addressM,
+        reset=reset,
+        inc=should_increment_pc,
+        load=should_load_pc,
+        out=pc
+    );
+
 }
