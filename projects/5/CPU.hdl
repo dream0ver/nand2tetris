@@ -36,13 +36,13 @@ CHIP CPU {
     And(
         a=instruction[15],
         b=instruction[4],
-        out=should_load_D
+        out=DLoad
     );  
     
     DRegister(
-        in=outM,
-        load=should_load_D,
-        out=D_reg_out
+        in=ALUout,
+        load=DLoad,
+        out=Dregout
     );
 
     And(
@@ -52,46 +52,48 @@ CHIP CPU {
     );
 
     Mux16(
-        a=addressM,
+        a=Aregout,
         b=inM,
         sel=instruction[12],
-        out=B_mux_out
+        out=Bmuxout
     );
 
     And(
         a=instruction[5],
         b=instruction[15],
-        out=is_dest_A
+        out=desthasA
     );
 
     Nand(
         a=instruction[15],
         b=true,
-        out=is_A_ins
+        out=isAinstruction
     );
 
     Or(
-        a=is_dest_A,
-        b=is_A_ins,
-        out=should_load_A
+        a=desthasA,
+        b=isAinstruction,
+        out=loadA
     );
 
     ARegister(
-        in=A_mux_out,
-        load=should_load_A,
-        out=addressM
+        in=Amuxout,
+        load=loadA,
+        out[15]=false,
+        out[0..14]=addressM,
+        out=Aregout
     );
 
     Mux16(
         a=instruction,
-        b=outM,
+        b=ALUout,
         sel=instruction[15],
-        out=A_mux_out
+        out=Amuxout
     );
     
     ALU(
-        x=D_reg_out,
-        y=B_mux_out,
+        x=Dregout,
+        y=Bmuxout,
         zx=instruction[11],
         nx=instruction[10],
         zy=instruction[9],
@@ -99,6 +101,7 @@ CHIP CPU {
         f=instruction[7],
         no=instruction[6],
         out=outM,
+        out=ALUout,
         zr=zrOut,
         ng=ngOut
     );
@@ -118,11 +121,11 @@ CHIP CPU {
     Or(
         a=JEQ,
         b=JLT,
-        out=JEQ_or_JLT
+        out=JEQorJLT
     );
 
     Not(
-        in=JEQ_or_JLT,
+        in=JEQorJLT,
         out=JGT
     );
 
@@ -159,26 +162,27 @@ CHIP CPU {
         in[5]=JNE,
         in[6]=JMP,
         in[7]=false,
-        out=should_jump
+        out=shouldjump
     );
 
     And(
-        a=should_jump,
+        a=shouldjump,
         b=instruction[15],
-        out=should_load_pc
+        out=loadPC
     );
 
     Not(
-        in=should_load_pc,
-        should_increment_pc
+        in=loadPC,
+        out=incrementPC
     );
 
     PC(
-        in=addressM,
+        in=Aregout,
         reset=reset,
-        inc=should_increment_pc,
-        load=should_load_pc,
-        out=pc
+        inc=incrementPC,
+        load=loadPC,
+        out[0]=false,
+        out[0..14]=pc
     );
 
 }
