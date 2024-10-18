@@ -101,77 +101,72 @@ CHIP CPU {
         no=instruction[6],
         out=outM,
         out=ALUout,
-        zr=zrOut,
-        ng=ngOut
+        zr=zr,
+        ng=ng
     );
 
-    Not(
-        in=ngOut,
-        out=notngOut
-    );
-
-    /*
-    JMP
-    JNE
-    */
-
-    And(
-        a=instruction[1],
-        b=zrOut,
-        out=JEQ
-    );
-    
     And(
         a=instruction[2],
-        b=ngOut,
+        b=ng,
         out=JLT
     );
 
     And(
-        a=instruction[0],
-        b=notngOut,
+        a=instruction[1],
+        b=zr,
+        out=JEQ
+    );
+
+    Or(
+        a=zr,
+        b=ng,
+        out=zrORng
+    );
+
+    Not(
+        in=zrORng,
+        out=notzrORng
+    );
+
+    And(
+        a=notzrORng,
+        b=instruction[0],
         out=JGT
-    );
-
-    Or(
-        a=JEQ,
-        b=JLT,
-        out=JLE
-    );
-
-    Or(
-        a=JEQ,
-        b=JGT,
-        out=JGE
-    );
-
-    Or(
-        a=JGT,
-        b=JLT,
-        out=JNE
     );
 
     And(
         a=instruction[0],
         b=instruction[1],
-        out=jmphalf
+        out=j3andj2
     );
 
     And(
         a=instruction[2],
-        b=jmphalf,
+        b=j3andj2,
         out=JMP
     );
 
-    Or8Way(
-        in[0]=JEQ,
-        in[1]=JLT,
-        in[2]=JGT,
-        in[3]=JLE,
-        in[4]=JGE,
-        in[5]=JNE,
-        in[6]=JMP,
-        in[7]=false,
+    Or(
+        a=JLT,
+        b=JGT,
+        out=j1
+    );
+
+    Or(
+        a=JEQ,
+        b=JMP,
+        out=j2
+    );
+
+    Or(
+        a=j1,
+        b=j2,
+        out=jump
+    );
+
+    And(
+        a=jump,
+        b=instruction[15],
         out=loadPC
     );
 
