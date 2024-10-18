@@ -134,33 +134,15 @@ CHIP CPU {
         out=JGT
     );
 
-    And(
-        a=instruction[0],
-        b=instruction[1],
-        out=j3andj2
-    );
-
-    And(
-        a=instruction[2],
-        b=j3andj2,
-        out=JMP
-    );
-
     Or(
         a=JLT,
+        b=JEQ,
+        out=JLE
+    );
+
+    Or(
+        a=JLE,
         b=JGT,
-        out=j1
-    );
-
-    Or(
-        a=JEQ,
-        b=JMP,
-        out=j2
-    );
-
-    Or(
-        a=j1,
-        b=j2,
         out=jump
     );
 
