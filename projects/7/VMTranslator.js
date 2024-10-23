@@ -88,6 +88,16 @@ function pop(segment, index) {
         "M=D",
       ])
     }
+    case "pointer": {
+      return cmdarr([
+        "@SP",
+        "M=M-1",
+        "A=M",
+        "D=M",
+        index != 0 ? "@4" : "@3",
+        "M=D",
+      ])
+    }
   }
 }
 
@@ -131,6 +141,17 @@ function push(segment, index) {
     case "static": {
       return cmdarr([
         `@${INPUT_FILE_META.name}.${index}`,
+        "D=M",
+        "@SP",
+        "A=M",
+        "M=D",
+        "@SP",
+        "M=M+1",
+      ])
+    }
+    case "pointer": {
+      return cmdarr([
+        index != 0 ? "@4" : "@3",
         "D=M",
         "@SP",
         "A=M",
