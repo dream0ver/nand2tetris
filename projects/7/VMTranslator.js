@@ -8,9 +8,23 @@ const opcodes = {
   or: "|",
   neg: "-",
   not: "!",
+}
+
+const jumpcodes = {
   eq: "JEQ",
   gt: "JGT",
   lt: "JLT",
+}
+
+const segments = {
+  local: "LCL",
+  // static: "",
+  // pointer: "",
+  // temp: "",
+  // that: "",
+  // this: "",
+  // argument: "",
+  // constant: "",
 }
 
 let label_id = -1
@@ -27,14 +41,26 @@ function formatCmds(cmds) {
   return cmds.join("\n")
 }
 
-function handlePush(chunks) {
-  const [segment, index] = chunks
-
+function handlePush(segment, index) {
   switch (segment) {
     case "constant": {
       return formatCmds([
         `@${index}`,
         "D=A",
+        "@SP",
+        "A=M",
+        "M=D",
+        "@SP",
+        "M=M+1",
+      ])
+    }
+    case "local": {
+      return formatCmds([
+        `@${index}`,
+        "D=A",
+        `@${segments[segment]}`,
+        "A=M+D",
+        "D=M",
         "@SP",
         "A=M",
         "M=D",
@@ -85,7 +111,7 @@ function handleOperation(chunks) {
         "M=M-D",
         "D=M",
         `@jump_true_${label_id}`,
-        `D;${opcodes[op]}`,
+        `D;${jumpcodes[op]}`,
         "@SP",
         "A=M",
         "A=A-1",
@@ -109,7 +135,7 @@ function parse(inst) {
 
   if (is_empty_line(inst) || is_comment(inst)) return null
 
-  if (chunks[0] == "push") return handlePush(chunks.slice(1))
+  if (chunks[0] == "push") return handlePush(...chunks.slice(1))
 
   return handleOperation(chunks)
 }
