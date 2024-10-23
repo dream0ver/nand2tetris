@@ -8,10 +8,12 @@ const opcodes = {
   or: "|",
   neg: "-",
   not: "!",
-  eq: "=",
-  gt: ">",
-  lt: "<",
+  eq: "JEQ",
+  gt: "JGT",
+  lt: "JLT",
 }
+
+let label_id = -1
 
 function is_comment(str) {
   return str.startsWith("//")
@@ -73,6 +75,30 @@ function handleOperation(chunks) {
     case "eq":
     case "gt":
     case "lt": {
+      ++label_id
+      return formatCmds([
+        "@SP",
+        "M=M-1",
+        "A=M",
+        "D=M",
+        "A=A-1",
+        "M=M-D",
+        "D=M",
+        `@jump_true_${label_id}`,
+        `D;${opcodes[op]}`,
+        "@SP",
+        "A=M",
+        "A=A-1",
+        "M=0",
+        `@continue_${label_id}`,
+        "0;JMP",
+        `(jump_true_${label_id})`,
+        "@SP",
+        "A=M",
+        "A=A-1",
+        "M=-1",
+        `(continue_${label_id})`,
+      ])
     }
   }
 }
