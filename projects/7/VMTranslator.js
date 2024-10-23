@@ -1,6 +1,8 @@
 const fs = require("fs").promises
 const path = require("path")
 
+const INPUT_FILE_META = path.parse(process.argv[2])
+
 const opcodes = {
   add: "+",
   sub: "-",
@@ -18,13 +20,9 @@ const jumpcodes = {
 
 const segments = {
   local: "LCL",
-  // static: "",
-  // pointer: "",
-  // temp: "",
-  // that: "",
-  // this: "",
-  // argument: "",
-  // constant: "",
+  argument: "ARG",
+  this: "THIS",
+  that: "THAT",
 }
 
 let label_id = -1
@@ -37,16 +35,77 @@ function is_empty_line(str) {
   return !str
 }
 
-function formatCmds(cmds) {
+function cmdarr(cmds) {
   return cmds.join("\n")
 }
 
-function handlePush(segment, index) {
+function pop(segment, index) {
   switch (segment) {
-    case "constant": {
-      return formatCmds([
+    case "local":
+    case "argument":
+    case "this":
+    case "that": {
+      return cmdarr([
         `@${index}`,
         "D=A",
+        `@${segments[segment]}`,
+        "D=D+M",
+        "@addr",
+        "M=D",
+        "@SP",
+        "M=M-1",
+        "A=M",
+        "D=M",
+        "@addr",
+        "A=M",
+        "M=D",
+      ])
+    }
+    case "temp": {
+      return cmdarr([
+        "@5",
+        "D=A",
+        `@${index}`,
+        "D=D+A",
+        "@addr",
+        "M=D",
+        "@SP",
+        "M=M-1",
+        "A=M",
+        "D=M",
+        "@addr",
+        "A=M",
+        "M=D",
+      ])
+    }
+    case "static": {
+      return cmdarr([
+        "@SP",
+        "M=M-1",
+        "A=M",
+        "D=M",
+        `@${INPUT_FILE_META.name}.${index}`,
+        "M=D",
+      ])
+    }
+  }
+}
+
+function push(segment, index) {
+  switch (segment) {
+    case "constant": {
+      return cmdarr([`@${index}`, "D=A", "@SP", "A=M", "M=D", "@SP", "M=M+1"])
+    }
+    case "local":
+    case "argument":
+    case "this":
+    case "that": {
+      return cmdarr([
+        `@${index}`,
+        "D=A",
+        `@${segments[segment]}`,
+        "A=M+D",
+        "D=M",
         "@SP",
         "A=M",
         "M=D",
@@ -54,12 +113,24 @@ function handlePush(segment, index) {
         "M=M+1",
       ])
     }
-    case "local": {
-      return formatCmds([
-        `@${index}`,
+    case "temp": {
+      return cmdarr([
+        "@5",
         "D=A",
-        `@${segments[segment]}`,
-        "A=M+D",
+        `@${index}`,
+        "D=D+A",
+        "A=D",
+        "D=M",
+        "@SP",
+        "A=M",
+        "M=D",
+        "@SP",
+        "M=M+1",
+      ])
+    }
+    case "static": {
+      return cmdarr([
+        `@${INPUT_FILE_META.name}.${index}`,
         "D=M",
         "@SP",
         "A=M",
@@ -78,7 +149,7 @@ function handleOperation(chunks) {
     case "sub":
     case "and":
     case "or": {
-      return formatCmds([
+      return cmdarr([
         "@SP",
         "M=M-1",
         "A=M",
@@ -89,7 +160,7 @@ function handleOperation(chunks) {
     }
     case "neg":
     case "not": {
-      return formatCmds([
+      return cmdarr([
         "@SP",
         "M=M-1",
         "A=M",
@@ -102,7 +173,7 @@ function handleOperation(chunks) {
     case "gt":
     case "lt": {
       ++label_id
-      return formatCmds([
+      return cmdarr([
         "@SP",
         "M=M-1",
         "A=M",
@@ -135,21 +206,24 @@ function parse(inst) {
 
   if (is_empty_line(inst) || is_comment(inst)) return null
 
-  if (chunks[0] == "push") return handlePush(...chunks.slice(1))
+  if (chunks[0] == "push") return push(...chunks.slice(1))
+
+  if (chunks[0] == "pop") return pop(...chunks.slice(1))
 
   return handleOperation(chunks)
 }
 
 async function main() {
-  const arg = process.argv[2]
+  if (!INPUT_FILE_META.name) throw new Error("Input file required.")
 
-  if (!arg) throw new Error("Input file required.")
+  const inputfile = await fs.open(
+    path.join(INPUT_FILE_META.dir, INPUT_FILE_META.base)
+  )
 
-  const { dir, base, name } = path.parse(arg)
-
-  const inputfile = await fs.open(path.join(dir, base))
-
-  const outputfile = await fs.open(path.join(dir, `${name}.asm`), "w")
+  const outputfile = await fs.open(
+    path.join(INPUT_FILE_META.dir, `${INPUT_FILE_META.name}.asm`),
+    "w"
+  )
 
   for await (let inst of inputfile.readLines()) {
     const line = parse(inst)
