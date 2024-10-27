@@ -12,6 +12,8 @@ const opcodes = {
   not: "!",
 }
 
+const branchingcmds = ["label", "if-goto", "goto"]
+
 const jumpcodes = {
   eq: "JEQ",
   gt: "JGT",
@@ -37,6 +39,20 @@ function is_empty_line(str) {
 
 function cmdarr(cmds) {
   return cmds.join("\n")
+}
+
+function handleBranching(tokenType, tokenName) {
+  switch (tokenType) {
+    case "label": {
+      return cmdarr([`(${tokenName})`])
+    }
+    case "if-goto": {
+      return cmdarr(["@SP", "M=M-1", "A=M", "D=M", `@${tokenName}`, `D;JNE`])
+    }
+    case "goto": {
+      return cmdarr([`@${tokenName}`, "0;JMP"])
+    }
+  }
 }
 
 function pop(segment, index) {
@@ -230,6 +246,8 @@ function parse(inst) {
   if (chunks[0] == "push") return push(...chunks.slice(1))
 
   if (chunks[0] == "pop") return pop(...chunks.slice(1))
+
+  if (branchingcmds.includes(chunks[0])) return handleBranching(...chunks)
 
   return handleOperation(chunks)
 }
