@@ -1,47 +1,80 @@
-const fs = require("fs").promises
-const path = require("path")
-
-const INPUT_FILE_META = path.parse(process.argv[2])
-
-const opcodes = {
+const FILE_SYSTEM = require("fs").promises
+const PATH = require("path")
+const INPUT_FILE_META = PATH.parse(process.argv[2])
+const C_PUSH = "C_PUSH"
+const C_POP = "C_POP"
+const C_LABEL = "C_LABEL"
+const C_GOTO = "C_GOTO"
+const C_IF = "C_IF"
+const C_ARITHMETIC = "C_ARITHMETIC"
+const C_FUNCTION = "C_FUNCTION"
+const C_RETURN = "C_RETURN"
+const C_CALL = "C_CALL"
+const OP_CODES = {
   add: "+",
   sub: "-",
+  neg: "-",
   and: "&",
   or: "|",
-  neg: "-",
   not: "!",
 }
-
-const branchingcmds = ["label", "if-goto", "goto"]
-
-const jumpcodes = {
+const JUMP_CODES = {
   eq: "JEQ",
   gt: "JGT",
   lt: "JLT",
 }
-
-const segments = {
+const SEGMENT_CODES = {
   local: "LCL",
   argument: "ARG",
   this: "THIS",
   that: "THAT",
 }
+let LABEL_ID = -1
 
-let label_id = -1
+function commandtype(tokens) {
+  switch (tokens[0]) {
+    case "push":
+      return C_PUSH
 
-function is_comment(str) {
-  return str.startsWith("//")
-}
+    case "pop":
+      return C_POP
 
-function is_empty_line(str) {
-  return !str
+    case "label":
+      return C_LABEL
+
+    case "if-goto":
+      return C_IF
+
+    case "goto":
+      return C_GOTO
+
+    case "return":
+      return C_RETURN
+
+    case "call":
+      return C_CALL
+
+    case "function":
+      return C_FUNCTION
+
+    case "add":
+    case "sub":
+    case "neg":
+    case "and":
+    case "or":
+    case "or":
+    case "gt":
+    case "lt":
+    case "eq":
+      return C_ARITHMETIC
+  }
 }
 
 function cmdarr(cmds) {
   return cmds.join("\n")
 }
 
-function handleBranching(tokenType, tokenName) {
+function branch(tokenType, tokenName) {
   switch (tokenType) {
     case "label": {
       return cmdarr([`(${tokenName})`])
@@ -64,7 +97,7 @@ function pop(segment, index) {
       return cmdarr([
         `@${index}`,
         "D=A",
-        `@${segments[segment]}`,
+        `@${SEGMENT_CODES[segment]}`,
         "D=D+M",
         "@addr",
         "M=D",
@@ -129,7 +162,7 @@ function push(segment, index) {
       return cmdarr([
         `@${index}`,
         "D=A",
-        `@${segments[segment]}`,
+        `@${SEGMENT_CODES[segment]}`,
         "A=M+D",
         "D=M",
         "@SP",
@@ -179,7 +212,7 @@ function push(segment, index) {
   }
 }
 
-function handleOperation(chunks) {
+function compute(chunks) {
   const [op] = chunks
   switch (op) {
     case "add":
@@ -192,7 +225,7 @@ function handleOperation(chunks) {
         "A=M",
         "D=M",
         "A=A-1",
-        `M=M${opcodes[op]}D`,
+        `M=M${OP_CODES[op]}D`,
       ])
     }
     case "neg":
@@ -201,7 +234,7 @@ function handleOperation(chunks) {
         "@SP",
         "M=M-1",
         "A=M",
-        `M=${opcodes[op]}M`,
+        `M=${OP_CODES[op]}M`,
         "@SP",
         "M=M+1",
       ])
@@ -209,7 +242,7 @@ function handleOperation(chunks) {
     case "eq":
     case "gt":
     case "lt": {
-      ++label_id
+      ++LABEL_ID
       return cmdarr([
         "@SP",
         "M=M-1",
@@ -218,49 +251,57 @@ function handleOperation(chunks) {
         "A=A-1",
         "M=M-D",
         "D=M",
-        `@jump_true_${label_id}`,
-        `D;${jumpcodes[op]}`,
+        `@jump_true_${LABEL_ID}`,
+        `D;${JUMP_CODES[op]}`,
         "@SP",
         "A=M",
         "A=A-1",
         "M=0",
-        `@continue_${label_id}`,
+        `@continue_${LABEL_ID}`,
         "0;JMP",
-        `(jump_true_${label_id})`,
+        `(jump_true_${LABEL_ID})`,
         "@SP",
         "A=M",
         "A=A-1",
         "M=-1",
-        `(continue_${label_id})`,
+        `(continue_${LABEL_ID})`,
       ])
     }
   }
 }
 
-function parse(inst) {
-  inst = inst.trim()
-  const chunks = inst.split(" ")
+function parse(line) {
+  const tokens = line.trim().split(" ")
 
-  if (is_empty_line(inst) || is_comment(inst)) return null
+  switch (commandtype(tokens)) {
+    case C_PUSH:
+      return push(...tokens.slice(1))
 
-  if (chunks[0] == "push") return push(...chunks.slice(1))
+    case C_POP:
+      return pop(...tokens.slice(1))
 
-  if (chunks[0] == "pop") return pop(...chunks.slice(1))
+    case C_ARITHMETIC:
+      return compute(tokens)
 
-  if (branchingcmds.includes(chunks[0])) return handleBranching(...chunks)
+    case C_GOTO:
+    case C_IF:
+    case C_LABEL:
+      return branch(...tokens)
 
-  return handleOperation(chunks)
+    default:
+      return null
+  }
 }
 
 async function main() {
   if (!INPUT_FILE_META.name) throw new Error("Input file required.")
 
-  const inputfile = await fs.open(
-    path.join(INPUT_FILE_META.dir, INPUT_FILE_META.base)
+  const inputfile = await FILE_SYSTEM.open(
+    PATH.join(INPUT_FILE_META.dir, INPUT_FILE_META.base)
   )
 
-  const outputfile = await fs.open(
-    path.join(INPUT_FILE_META.dir, `${INPUT_FILE_META.name}.asm`),
+  const outputfile = await FILE_SYSTEM.open(
+    PATH.join(INPUT_FILE_META.dir, `${INPUT_FILE_META.name}.asm`),
     "w"
   )
 
