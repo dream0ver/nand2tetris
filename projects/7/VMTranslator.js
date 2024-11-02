@@ -1,6 +1,8 @@
 const FILE_SYSTEM = require("fs").promises
 const PATH = require("path")
+
 const INPUT_FILE_META = PATH.parse(process.argv[2])
+
 const C_PUSH = "C_PUSH"
 const C_POP = "C_POP"
 const C_LABEL = "C_LABEL"
@@ -10,6 +12,7 @@ const C_ARITHMETIC = "C_ARITHMETIC"
 const C_FUNCTION = "C_FUNCTION"
 const C_RETURN = "C_RETURN"
 const C_CALL = "C_CALL"
+
 const OP_CODES = {
   add: "+",
   sub: "-",
@@ -30,6 +33,10 @@ const SEGMENT_CODES = {
   that: "THAT",
 }
 let LABEL_ID = -1
+
+function writeInit() {
+  return cmdarr(["@256", "D=A", "@SP", "M=D", "@Sys.init", "0;JMP"])
+}
 
 function commandtype(tokens) {
   switch (tokens[0]) {
@@ -76,15 +83,12 @@ function cmdarr(cmds) {
 
 function branch(tokenType, tokenName) {
   switch (tokenType) {
-    case "label": {
+    case "label":
       return cmdarr([`(${tokenName})`])
-    }
-    case "if-goto": {
+    case "if-goto":
       return cmdarr(["@SP", "M=M-1", "A=M", "D=M", `@${tokenName}`, `D;JNE`])
-    }
-    case "goto": {
+    case "goto":
       return cmdarr([`@${tokenName}`, "0;JMP"])
-    }
   }
 }
 
@@ -93,7 +97,7 @@ function pop(segment, index) {
     case "local":
     case "argument":
     case "this":
-    case "that": {
+    case "that":
       return cmdarr([
         `@${index}`,
         "D=A",
@@ -109,10 +113,9 @@ function pop(segment, index) {
         "A=M",
         "M=D",
       ])
-    }
-    case "temp": {
+    case "temp":
       return cmdarr([
-        "@5",
+        "@13",
         "D=A",
         `@${index}`,
         "D=D+A",
@@ -126,8 +129,7 @@ function pop(segment, index) {
         "A=M",
         "M=D",
       ])
-    }
-    case "static": {
+    case "static":
       return cmdarr([
         "@SP",
         "M=M-1",
@@ -136,8 +138,7 @@ function pop(segment, index) {
         `@${INPUT_FILE_META.name}.${index}`,
         "M=D",
       ])
-    }
-    case "pointer": {
+    case "pointer":
       return cmdarr([
         "@SP",
         "M=M-1",
@@ -146,19 +147,17 @@ function pop(segment, index) {
         index != 0 ? "@4" : "@3",
         "M=D",
       ])
-    }
   }
 }
 
 function push(segment, index) {
   switch (segment) {
-    case "constant": {
+    case "constant":
       return cmdarr([`@${index}`, "D=A", "@SP", "A=M", "M=D", "@SP", "M=M+1"])
-    }
     case "local":
     case "argument":
     case "this":
-    case "that": {
+    case "that":
       return cmdarr([
         `@${index}`,
         "D=A",
@@ -171,10 +170,9 @@ function push(segment, index) {
         "@SP",
         "M=M+1",
       ])
-    }
-    case "temp": {
+    case "temp":
       return cmdarr([
-        "@5",
+        "@13",
         "D=A",
         `@${index}`,
         "D=D+A",
@@ -186,8 +184,7 @@ function push(segment, index) {
         "@SP",
         "M=M+1",
       ])
-    }
-    case "static": {
+    case "static":
       return cmdarr([
         `@${INPUT_FILE_META.name}.${index}`,
         "D=M",
@@ -197,8 +194,7 @@ function push(segment, index) {
         "@SP",
         "M=M+1",
       ])
-    }
-    case "pointer": {
+    case "pointer":
       return cmdarr([
         index != 0 ? "@4" : "@3",
         "D=M",
@@ -208,7 +204,6 @@ function push(segment, index) {
         "@SP",
         "M=M+1",
       ])
-    }
   }
 }
 
@@ -218,7 +213,7 @@ function compute(chunks) {
     case "add":
     case "sub":
     case "and":
-    case "or": {
+    case "or":
       return cmdarr([
         "@SP",
         "M=M-1",
@@ -227,9 +222,8 @@ function compute(chunks) {
         "A=A-1",
         `M=M${OP_CODES[op]}D`,
       ])
-    }
     case "neg":
-    case "not": {
+    case "not":
       return cmdarr([
         "@SP",
         "M=M-1",
@@ -238,7 +232,6 @@ function compute(chunks) {
         "@SP",
         "M=M+1",
       ])
-    }
     case "eq":
     case "gt":
     case "lt": {
