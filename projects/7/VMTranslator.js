@@ -118,7 +118,7 @@ function pop(segment, index) {
       ])
     case "temp":
       return cmdarr([
-        "@13",
+        "@5",
         "D=A",
         `@${index}`,
         "D=D+A",
@@ -175,7 +175,7 @@ function push(segment, index) {
       ])
     case "temp":
       return cmdarr([
-        "@13",
+        "@5",
         "D=A",
         `@${index}`,
         "D=D+A",
