@@ -4,7 +4,7 @@ const path = require("path")
 const SOURCE_FILES = []
 const INPUT_DIR_PATH = process.argv[2]
 
-let CURRENT_INPUT_FILE = ""
+let CURRENT_INPUT_FILE
 
 const C_PUSH = "C_PUSH"
 const C_POP = "C_POP"
@@ -304,14 +304,12 @@ async function main() {
       "Translation Failed : Directory does not contain .vm files."
     )
 
-  SOURCE_FILES.forEach(async (file) => {
+  SOURCE_FILES.forEach(async (file, fidx) => {
     CURRENT_INPUT_FILE = file
-    const inputfile = await fs.open(
-      path.join(INPUT_DIR_PATH, CURRENT_INPUT_FILE)
-    )
+    const inputfile = await fs.open(path.join(INPUT_DIR_PATH, file))
     const outputfile = await fs.open(
-      path.join(INPUT_DIR_PATH, `${path.parse(CURRENT_INPUT_FILE).name}.asm`),
-      "w"
+      path.join(INPUT_DIR_PATH, `${path.parse(INPUT_DIR_PATH).base}.asm`),
+      fidx == 0 ? "w" : "a"
     )
     for await (let inst of inputfile.readLines()) {
       const line = parse(inst)
