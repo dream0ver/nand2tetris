@@ -1,7 +1,10 @@
-const FILE_SYSTEM = require("fs").promises
-const PATH = require("path")
+const fs = require("fs").promises
+const path = require("path")
 
-const INPUT_FILE_META = PATH.parse(process.argv[2])
+const SOURCE_FILES = []
+const INPUT_DIR_PATH = process.argv[2]
+
+let CURRENT_INPUT_FILE = ""
 
 const C_PUSH = "C_PUSH"
 const C_POP = "C_POP"
@@ -135,7 +138,7 @@ function pop(segment, index) {
         "M=M-1",
         "A=M",
         "D=M",
-        `@${INPUT_FILE_META.name}.${index}`,
+        `@${CURRENT_INPUT_FILE}.${index}`,
         "M=D",
       ])
     case "pointer":
@@ -186,7 +189,7 @@ function push(segment, index) {
       ])
     case "static":
       return cmdarr([
-        `@${INPUT_FILE_META.name}.${index}`,
+        `@${CURRENT_INPUT_FILE}.${index}`,
         "D=M",
         "@SP",
         "A=M",
@@ -286,22 +289,35 @@ function parse(line) {
   }
 }
 
+async function readFiles() {
+  const files = await fs.readdir(process.argv[2])
+  files.forEach((file) => {
+    if (path.extname(file).slice(1) == "vm") SOURCE_FILES.push(file)
+  })
+}
+
 async function main() {
-  if (!INPUT_FILE_META.name) throw new Error("Input file required.")
+  await readFiles()
 
-  const inputfile = await FILE_SYSTEM.open(
-    PATH.join(INPUT_FILE_META.dir, INPUT_FILE_META.base)
-  )
+  if (!SOURCE_FILES.length)
+    throw new Error(
+      "Translation Failed : Directory does not contain .vm files."
+    )
 
-  const outputfile = await FILE_SYSTEM.open(
-    PATH.join(INPUT_FILE_META.dir, `${INPUT_FILE_META.name}.asm`),
-    "w"
-  )
-
-  for await (let inst of inputfile.readLines()) {
-    const line = parse(inst)
-    if (line) await outputfile.write(`// ${inst}` + "\n" + line + "\n")
-  }
+  SOURCE_FILES.forEach(async (file) => {
+    CURRENT_INPUT_FILE = file
+    const inputfile = await fs.open(
+      path.join(INPUT_DIR_PATH, CURRENT_INPUT_FILE)
+    )
+    const outputfile = await fs.open(
+      path.join(INPUT_DIR_PATH, `${path.parse(CURRENT_INPUT_FILE).name}.asm`),
+      "w"
+    )
+    for await (let inst of inputfile.readLines()) {
+      const line = parse(inst)
+      if (line) await outputfile.write(`// ${inst}` + "\n" + line + "\n")
+    }
+  })
 }
 
 try {
