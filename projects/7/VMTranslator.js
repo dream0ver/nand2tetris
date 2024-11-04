@@ -37,10 +37,6 @@ const SEGMENT_CODES = {
 }
 let LABEL_ID = -1
 
-function writeInit() {
-  return cmdarr(["@256", "D=A", "@SP", "M=D", "@Sys.init", "0;JMP"])
-}
-
 function commandtype(tokens) {
   switch (tokens[0]) {
     case "push":
@@ -72,7 +68,7 @@ function commandtype(tokens) {
     case "neg":
     case "and":
     case "or":
-    case "or":
+    case "not":
     case "gt":
     case "lt":
     case "eq":
@@ -266,8 +262,96 @@ function compute(chunks) {
   }
 }
 
+function subroutine(tokenType, tokenName, nArgs = 0) {
+  switch (tokenType) {
+    case "function":
+      return cmdarr([
+        `(${tokenName})`,
+        `@${nArgs}`,
+        "D=A",
+        "@SP",
+        "M=M+D",
+        "@nArgs",
+        "M=D",
+      ])
+    case "return":
+      return cmdarr([
+        // Backup result
+        "@SP",
+        "A=M-1",
+        "D=M",
+        "@result",
+        "M=D",
+
+        // Set SP = LCL
+        "@LCL",
+        "D=M",
+        "@SP",
+        "M=D",
+
+        // Set THAT to Callers THAT
+        "M=M-1",
+        "A=M",
+        "D=M",
+        "@4",
+        "M=D",
+
+        // Set THIS to Callers THIS
+        "@SP",
+        "M=M-1",
+        "A=M",
+        "D=M",
+        "@3",
+        "M=D",
+
+        // Set ARG to Callers ARG
+        "@SP",
+        "M=M-1",
+        "A=M",
+        "D=M",
+        "@2",
+        "M=D",
+
+        // Set LCL to Callers LCL
+        "@SP",
+        "M=M-1",
+        "A=M",
+        "D=M",
+        "@1",
+        "M=D",
+
+        // Backup Return Address
+        "@SP",
+        "M=M-1",
+        "A=M",
+        "D=M",
+        "@returnaddr",
+        "M=D",
+
+        // Replace Top value on stack with return value
+
+        `@nArgs`,
+        "D=M",
+        "@SP",
+        "M=M-D",
+        "@result",
+        "D=M",
+        "@SP",
+        "A=M",
+        "M=D",
+
+        // Jumping to return address
+        "@SP",
+        "M=M+1",
+        "@returnaddr",
+        "A=M",
+        "0;JMP",
+      ])
+  }
+}
+
 function parse(line) {
-  const tokens = line.trim().split(" ")
+  const tokens = line.split(" ")
 
   switch (commandtype(tokens)) {
     case C_PUSH:
@@ -284,8 +368,10 @@ function parse(line) {
     case C_LABEL:
       return branch(...tokens)
 
-    default:
-      return null
+    case C_FUNCTION:
+    case C_CALL:
+    case C_RETURN:
+      return subroutine(...tokens)
   }
 }
 
@@ -312,6 +398,7 @@ async function main() {
       fidx == 0 ? "w" : "a"
     )
     for await (let inst of inputfile.readLines()) {
+      inst = inst.trim()
       const line = parse(inst)
       if (line) await outputfile.write(`// ${inst}` + "\n" + line + "\n")
     }
