@@ -270,13 +270,13 @@ function subroutine(tokenType, tokenName, nArgs = 0) {
   switch (tokenType) {
     case "function": {
       FN_CALL_STACK.push(tokenName)
-      const cmds = [`(${tokenName})`, `@${nArgs}`, "D=A", "@nArgs", "M=D"]
-      for (let i = 0; i < nArgs; i++) {
-        cmds.push("@SP")
-        cmds.push("M=M+1")
-        cmds.push("A=M-1")
-        cmds.push("M=0")
-      }
+      const cmds = [`(${tokenName})`, `@${nArgs}`, "D=A", "@R13", "M=D"]
+      cmds.splice(cmds.length, "@SP", "M=M+1", "A=M-1", "M=0")
+      return cmdarr(cmds)
+    }
+
+    case "call": {
+      const cmds = []
       return cmdarr(cmds)
     }
 
@@ -287,7 +287,7 @@ function subroutine(tokenType, tokenName, nArgs = 0) {
         "@SP",
         "A=M-1",
         "D=M",
-        "@result",
+        "@R14",
         "M=D",
 
         // Set SP = LCL
@@ -332,15 +332,15 @@ function subroutine(tokenType, tokenName, nArgs = 0) {
         "M=M-1",
         "A=M",
         "D=M",
-        "@returnaddr",
+        "@R15",
         "M=D",
 
         // Replace Top value on stack with return value
-        `@nArgs`,
+        `@R13`,
         "D=M",
         "@SP",
         "M=M-D",
-        "@result",
+        "@R14",
         "D=M",
         "@SP",
         "A=M",
@@ -349,7 +349,7 @@ function subroutine(tokenType, tokenName, nArgs = 0) {
         // Jumping to return address
         "@SP",
         "M=M+1",
-        "@returnaddr",
+        "@R15",
         "A=M",
         "0;JMP",
       ])
