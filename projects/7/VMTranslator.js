@@ -397,19 +397,21 @@ async function main() {
       "Translation Failed : Directory does not contain .vm files."
     )
 
-  SOURCE_FILES.forEach(async (fp, fidx) => {
+  const outputfile = await fs.open(
+    path.join(INPUT_DIR_PATH, `${path.parse(INPUT_DIR_PATH).base}.asm`),
+    "w"
+  )
+
+  for (const fp of SOURCE_FILES) {
     CURR_F_NAME = path.parse(fp).name
     const inputfile = await fs.open(path.join(INPUT_DIR_PATH, fp))
-    const outputfile = await fs.open(
-      path.join(INPUT_DIR_PATH, `${path.parse(INPUT_DIR_PATH).base}.asm`),
-      fidx == 0 ? "w" : "a"
-    )
+
     for await (let inst of inputfile.readLines()) {
       inst = inst.trim()
       const line = parse(inst)
       if (line) await outputfile.write(`// ${inst}` + "\n" + line + "\n")
     }
-  })
+  }
 }
 
 try {
