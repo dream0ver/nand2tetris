@@ -4,7 +4,9 @@ const path = require("path")
 const SOURCE_FILES = []
 const INPUT_DIR_PATH = process.argv[2]
 
-let CURRENT_INPUT_FILE
+let CURR_F_NAME = ""
+let FN_CALL_STACK = []
+let LABEL_ID = -1
 
 const C_PUSH = "C_PUSH"
 const C_POP = "C_POP"
@@ -35,7 +37,6 @@ const SEGMENT_CODES = {
   this: "THIS",
   that: "THAT",
 }
-let LABEL_ID = -1
 
 function commandtype(tokens) {
   switch (tokens[0]) {
@@ -81,13 +82,16 @@ function cmdarr(cmds) {
 }
 
 function branch(tokenType, tokenName) {
+  const label = FN_CALL_STACK.length
+    ? `${FN_CALL_STACK.slice(-1)[0]}$${tokenName}`
+    : `${tokenName}`
   switch (tokenType) {
     case "label":
-      return cmdarr([`(${tokenName})`])
+      return cmdarr([`(${label})`])
     case "if-goto":
-      return cmdarr(["@SP", "M=M-1", "A=M", "D=M", `@${tokenName}`, `D;JNE`])
+      return cmdarr(["@SP", "M=M-1", "A=M", "D=M", `@${label}`, `D;JNE`])
     case "goto":
-      return cmdarr([`@${tokenName}`, "0;JMP"])
+      return cmdarr([`@${label}`, "0;JMP"])
   }
 }
 
@@ -134,7 +138,7 @@ function pop(segment, index) {
         "M=M-1",
         "A=M",
         "D=M",
-        `@${CURRENT_INPUT_FILE}.${index}`,
+        `@${CURR_F_NAME}.${index}`,
         "M=D",
       ])
     case "pointer":
@@ -152,7 +156,7 @@ function pop(segment, index) {
 function push(segment, index) {
   switch (segment) {
     case "constant":
-      return cmdarr([`@${index}`, "D=A", "@SP", "A=M", "M=D", "@SP", "M=M+1"])
+      return cmdarr([`@${index}`, "D=A", "@SP", "M=M+1", "A=M-1", "M=D"])
     case "local":
     case "argument":
     case "this":
@@ -185,7 +189,7 @@ function push(segment, index) {
       ])
     case "static":
       return cmdarr([
-        `@${CURRENT_INPUT_FILE}.${index}`,
+        `@${CURR_F_NAME}.${index}`,
         "D=M",
         "@SP",
         "A=M",
@@ -264,17 +268,20 @@ function compute(chunks) {
 
 function subroutine(tokenType, tokenName, nArgs = 0) {
   switch (tokenType) {
-    case "function":
-      return cmdarr([
-        `(${tokenName})`,
-        `@${nArgs}`,
-        "D=A",
-        "@SP",
-        "M=M+D",
-        "@nArgs",
-        "M=D",
-      ])
-    case "return":
+    case "function": {
+      FN_CALL_STACK.push(tokenName)
+      const cmds = [`(${tokenName})`, `@${nArgs}`, "D=A", "@nArgs", "M=D"]
+      for (let i = 0; i < nArgs; i++) {
+        cmds.push("@SP")
+        cmds.push("M=M+1")
+        cmds.push("A=M-1")
+        cmds.push("M=0")
+      }
+      return cmdarr(cmds)
+    }
+
+    case "return": {
+      FN_CALL_STACK.pop()
       return cmdarr([
         // Backup result
         "@SP",
@@ -329,7 +336,6 @@ function subroutine(tokenType, tokenName, nArgs = 0) {
         "M=D",
 
         // Replace Top value on stack with return value
-
         `@nArgs`,
         "D=M",
         "@SP",
@@ -347,6 +353,7 @@ function subroutine(tokenType, tokenName, nArgs = 0) {
         "A=M",
         "0;JMP",
       ])
+    }
   }
 }
 
@@ -390,9 +397,9 @@ async function main() {
       "Translation Failed : Directory does not contain .vm files."
     )
 
-  SOURCE_FILES.forEach(async (file, fidx) => {
-    CURRENT_INPUT_FILE = file
-    const inputfile = await fs.open(path.join(INPUT_DIR_PATH, file))
+  SOURCE_FILES.forEach(async (fp, fidx) => {
+    CURR_F_NAME = path.parse(fp).name
+    const inputfile = await fs.open(path.join(INPUT_DIR_PATH, fp))
     const outputfile = await fs.open(
       path.join(INPUT_DIR_PATH, `${path.parse(INPUT_DIR_PATH).base}.asm`),
       fidx == 0 ? "w" : "a"
