@@ -1,12 +1,11 @@
-// 	push constant 0    
+// push constant 0
 @0
 D=A
 @SP
-A=M
-M=D
-@SP
 M=M+1
-// 	pop local 0         // sum = 0
+A=M-1
+M=D
+// pop local 0         // sum = 0
 @0
 D=A
 @LCL
@@ -22,7 +21,7 @@ A=M
 M=D
 // label LOOP
 (LOOP)
-// 	push argument 0     
+// push argument 0
 @0
 D=A
 @ARG
@@ -33,7 +32,7 @@ A=M
 M=D
 @SP
 M=M+1
-// 	push local 0
+// push local 0
 @0
 D=A
 @LCL
@@ -44,14 +43,14 @@ A=M
 M=D
 @SP
 M=M+1
-// 	add
+// add
 @SP
 M=M-1
 A=M
 D=M
 A=A-1
 M=M+D
-// 	pop local 0	        // sum = sum + n
+// pop local 0	        // sum = sum + n
 @0	
 D=A
 @LCL
@@ -65,7 +64,7 @@ D=M
 @addr
 A=M
 M=D
-// 	push argument 0
+// push argument 0
 @0
 D=A
 @ARG
@@ -76,22 +75,21 @@ A=M
 M=D
 @SP
 M=M+1
-// 	push constant 1
+// push constant 1
 @1
 D=A
 @SP
-A=M
-M=D
-@SP
 M=M+1
-// 	sub
+A=M-1
+M=D
+// sub
 @SP
 M=M-1
 A=M
 D=M
 A=A-1
 M=M-D
-// 	pop argument 0      // n--
+// pop argument 0      // n--
 @0
 D=A
 @ARG
@@ -105,7 +103,7 @@ D=M
 @addr
 A=M
 M=D
-// 	push argument 0
+// push argument 0
 @0
 D=A
 @ARG
@@ -116,14 +114,14 @@ A=M
 M=D
 @SP
 M=M+1
-// 	if-goto LOOP        // if n > 0, goto LOOP
+// if-goto LOOP        // if n > 0, goto LOOP
 @SP
 M=M-1
 A=M
 D=M
 @LOOP
 D;JNE
-// 	push local 0        // else, pushes sum to the stack's top
+// push local 0        // else, pushes sum to the stack's top
 @0
 D=A
 @LCL

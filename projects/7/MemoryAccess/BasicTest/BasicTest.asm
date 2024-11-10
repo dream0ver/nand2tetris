@@ -2,10 +2,9 @@
 @10
 D=A
 @SP
-A=M
-M=D
-@SP
 M=M+1
+A=M-1
+M=D
 // pop local 0
 @0
 D=A
@@ -24,18 +23,16 @@ M=D
 @21
 D=A
 @SP
-A=M
-M=D
-@SP
 M=M+1
+A=M-1
+M=D
 // push constant 22
 @22
 D=A
 @SP
-A=M
-M=D
-@SP
 M=M+1
+A=M-1
+M=D
 // pop argument 2
 @2
 D=A
@@ -68,10 +65,9 @@ M=D
 @36
 D=A
 @SP
-A=M
-M=D
-@SP
 M=M+1
+A=M-1
+M=D
 // pop this 6
 @6
 D=A
@@ -90,18 +86,16 @@ M=D
 @42
 D=A
 @SP
-A=M
-M=D
-@SP
 M=M+1
+A=M-1
+M=D
 // push constant 45
 @45
 D=A
 @SP
-A=M
-M=D
-@SP
 M=M+1
+A=M-1
+M=D
 // pop that 5
 @5
 D=A
@@ -134,10 +128,9 @@ M=D
 @510
 D=A
 @SP
-A=M
-M=D
-@SP
 M=M+1
+A=M-1
+M=D
 // pop temp 6
 @5
 D=A

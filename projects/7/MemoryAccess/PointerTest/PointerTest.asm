@@ -2,10 +2,9 @@
 @3030
 D=A
 @SP
-A=M
-M=D
-@SP
 M=M+1
+A=M-1
+M=D
 // pop pointer 0
 @SP
 M=M-1
@@ -17,10 +16,9 @@ M=D
 @3040
 D=A
 @SP
-A=M
-M=D
-@SP
 M=M+1
+A=M-1
+M=D
 // pop pointer 1
 @SP
 M=M-1
@@ -32,10 +30,9 @@ M=D
 @32
 D=A
 @SP
-A=M
-M=D
-@SP
 M=M+1
+A=M-1
+M=D
 // pop this 2
 @2
 D=A
@@ -54,10 +51,9 @@ M=D
 @46
 D=A
 @SP
-A=M
-M=D
-@SP
 M=M+1
+A=M-1
+M=D
 // pop that 6
 @6
 D=A
