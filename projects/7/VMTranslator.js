@@ -4,7 +4,7 @@ const path = require("path")
 const SOURCE_FILES = []
 const INPUT_DIR_PATH = process.argv[2]
 
-let CURR_F_NAME = ""
+let CURR_FILE_NAME = ""
 let FN_CALL_STACK = []
 let LABEL_ID = -1
 
@@ -138,7 +138,7 @@ function pop(segment, index) {
         "M=M-1",
         "A=M",
         "D=M",
-        `@${CURR_F_NAME}.${index}`,
+        `@${CURR_FILE_NAME}.${index}`,
         "M=D",
       ])
     case "pointer":
@@ -189,7 +189,7 @@ function push(segment, index) {
       ])
     case "static":
       return cmdarr([
-        `@${CURR_F_NAME}.${index}`,
+        `@${CURR_FILE_NAME}.${index}`,
         "D=M",
         "@SP",
         "A=M",
@@ -357,7 +357,7 @@ function subroutine(tokenType, tokenName, nArgs = 0) {
   }
 }
 
-function parse(line) {
+function parseInstruction(line) {
   const tokens = line.split(" ")
 
   switch (commandtype(tokens)) {
@@ -402,14 +402,14 @@ async function main() {
     "w"
   )
 
-  for (const fp of SOURCE_FILES) {
-    CURR_F_NAME = path.parse(fp).name
-    const inputfile = await fs.open(path.join(INPUT_DIR_PATH, fp))
+  for (const curr_file of SOURCE_FILES) {
+    CURR_FILE_NAME = path.parse(curr_file).name
+    const inputfile = await fs.open(path.join(INPUT_DIR_PATH, curr_file))
 
-    for await (let inst of inputfile.readLines()) {
-      inst = inst.trim()
-      const line = parse(inst)
-      if (line) await outputfile.write(`// ${inst}` + "\n" + line + "\n")
+    for await (let instruction of inputfile.readLines()) {
+      instruction = instruction.trim()
+      const line = parseInstruction(instruction)
+      if (line) await outputfile.write(`// ${instruction}` + "\n" + line + "\n")
     }
   }
 }
