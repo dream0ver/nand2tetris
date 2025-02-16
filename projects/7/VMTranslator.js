@@ -77,7 +77,7 @@ function commandtype(tokens) {
   }
 }
 
-function cmdarr(cmds) {
+function cmd(cmds) {
   return cmds.join("\n")
 }
 
@@ -87,11 +87,11 @@ function branch(tokenType, tokenName) {
     : `${tokenName}`
   switch (tokenType) {
     case "label":
-      return cmdarr([`(${label})`])
+      return cmd([`(${label})`])
     case "if-goto":
-      return cmdarr(["@SP", "M=M-1", "A=M", "D=M", `@${label}`, `D;JNE`])
+      return cmd(["@SP", "M=M-1", "A=M", "D=M", `@${label}`, `D;JNE`])
     case "goto":
-      return cmdarr([`@${label}`, "0;JMP"])
+      return cmd([`@${label}`, "0;JMP"])
   }
 }
 
@@ -101,7 +101,7 @@ function pop(segment, index) {
     case "argument":
     case "this":
     case "that":
-      return cmdarr([
+      return cmd([
         `@${index}`,
         "D=A",
         `@${SEGMENT_CODES[segment]}`,
@@ -117,7 +117,7 @@ function pop(segment, index) {
         "M=D",
       ])
     case "temp":
-      return cmdarr([
+      return cmd([
         "@5",
         "D=A",
         `@${index}`,
@@ -133,7 +133,7 @@ function pop(segment, index) {
         "M=D",
       ])
     case "static":
-      return cmdarr([
+      return cmd([
         "@SP",
         "M=M-1",
         "A=M",
@@ -142,7 +142,7 @@ function pop(segment, index) {
         "M=D",
       ])
     case "pointer":
-      return cmdarr([
+      return cmd([
         "@SP",
         "M=M-1",
         "A=M",
@@ -156,12 +156,12 @@ function pop(segment, index) {
 function push(segment, index) {
   switch (segment) {
     case "constant":
-      return cmdarr([`@${index}`, "D=A", "@SP", "M=M+1", "A=M-1", "M=D"])
+      return cmd([`@${index}`, "D=A", "@SP", "M=M+1", "A=M-1", "M=D"])
     case "local":
     case "argument":
     case "this":
     case "that":
-      return cmdarr([
+      return cmd([
         `@${index}`,
         "D=A",
         `@${SEGMENT_CODES[segment]}`,
@@ -174,7 +174,7 @@ function push(segment, index) {
         "M=M+1",
       ])
     case "temp":
-      return cmdarr([
+      return cmd([
         "@5",
         "D=A",
         `@${index}`,
@@ -188,7 +188,7 @@ function push(segment, index) {
         "M=M+1",
       ])
     case "static":
-      return cmdarr([
+      return cmd([
         `@${CURR_FILE_NAME}.${index}`,
         "D=M",
         "@SP",
@@ -198,7 +198,7 @@ function push(segment, index) {
         "M=M+1",
       ])
     case "pointer":
-      return cmdarr([
+      return cmd([
         index != 0 ? "@4" : "@3",
         "D=M",
         "@SP",
@@ -217,7 +217,7 @@ function compute(chunks) {
     case "sub":
     case "and":
     case "or":
-      return cmdarr([
+      return cmd([
         "@SP",
         "M=M-1",
         "A=M",
@@ -227,7 +227,7 @@ function compute(chunks) {
       ])
     case "neg":
     case "not":
-      return cmdarr([
+      return cmd([
         "@SP",
         "M=M-1",
         "A=M",
@@ -239,7 +239,7 @@ function compute(chunks) {
     case "gt":
     case "lt": {
       ++LABEL_ID
-      return cmdarr([
+      return cmd([
         "@SP",
         "M=M-1",
         "A=M",
@@ -272,17 +272,17 @@ function subroutine(tokenType, tokenName, nArgs = 0) {
       FN_CALL_STACK.push(tokenName)
       const cmds = [`(${tokenName})`, `@${nArgs}`, "D=A", "@R13", "M=D"]
       cmds.splice(cmds.length, "@SP", "M=M+1", "A=M-1", "M=0")
-      return cmdarr(cmds)
+      return cmd(cmds)
     }
 
     case "call": {
       const cmds = []
-      return cmdarr(cmds)
+      return cmd(cmds)
     }
 
     case "return": {
       FN_CALL_STACK.pop()
-      return cmdarr([
+      return cmd([
         // Backup result
         "@SP",
         "A=M-1",
