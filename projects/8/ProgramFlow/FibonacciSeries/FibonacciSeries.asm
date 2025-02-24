@@ -14,7 +14,7 @@ M=M+1
 M=M-1
 A=M
 D=M
-@4
+@THAT
 M=D
 // push constant 0         // sets the series' first and second
 @0
@@ -192,7 +192,7 @@ M=M+D
 M=M-1
 A=M
 D=M
-@4
+@THAT
 M=D
 // push argument 0
 @0

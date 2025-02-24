@@ -147,7 +147,7 @@ function pop(segment, index) {
         "M=M-1",
         "A=M",
         "D=M",
-        index != 0 ? "@4" : "@3",
+        index == 0 ? "@THIS" : "@THAT",
         "M=D",
       ])
   }
