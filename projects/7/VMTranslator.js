@@ -5,7 +5,7 @@ const SOURCE_FILES = []
 const INPUT_DIR_PATH = process.argv[2]
 
 let CURR_FILE_NAME = ""
-let FN_CALL_STACK = []
+let CALL_STACK = []
 let LABEL_ID = -1
 
 const C_PUSH = "C_PUSH"
@@ -82,8 +82,8 @@ function cmd(cmds) {
 }
 
 function branch(tokenType, tokenName) {
-  const label = FN_CALL_STACK.length
-    ? `${FN_CALL_STACK.slice(-1)[0]}$${tokenName}`
+  const label = CALL_STACK.length
+    ? `${CALL_STACK.slice(-1)[0]}$${tokenName}`
     : `${tokenName}`
   switch (tokenType) {
     case "label":
@@ -266,92 +266,91 @@ function compute(chunks) {
   }
 }
 
-function subroutine(tokenType, tokenName, nArgs = 0) {
+function subroutine(tokenType, tokenName, localVarCount = 0) {
   switch (tokenType) {
     case "function": {
-      FN_CALL_STACK.push(tokenName)
-      const cmds = [`(${tokenName})`, `@${nArgs}`, "D=A", "@R13", "M=D"]
-      cmds.splice(cmds.length, "@SP", "M=M+1", "A=M-1", "M=0")
-      return cmd(cmds)
-    }
-
-    case "call": {
-      const cmds = []
+      CALL_STACK.push(tokenName)
+      const cmds = [`(${tokenName})`]
+      for (let i = localVarCount; i > 0; i--) cmds.splice(cmds.length, 4, "@SP", "M=M+1", "A=M-1", "M=0")
       return cmd(cmds)
     }
 
     case "return": {
-      FN_CALL_STACK.pop()
+      CALL_STACK.pop()
       return cmd([
-        // Backup result
-        "@SP",
-        "A=M-1",
-        "D=M",
-        "@R14",
-        "M=D",
-
-        // Set SP = LCL
+        // FRAME = LCL 
         "@LCL",
         "D=M",
-        "@SP",
+        "@FRAME",
         "M=D",
 
-        // Set THAT to Callers THAT
-        "M=M-1",
-        "A=M",
+        // RET = *(FRAME-5)
+        "@FRAME",
         "D=M",
-        "@4",
-        "M=D",
-
-        // Set THIS to Callers THIS
-        "@SP",
-        "M=M-1",
-        "A=M",
+        "@5",
+        "D=D-A",
+        "A=D",
         "D=M",
-        "@3",
+        "@returnaddress",
         "M=D",
 
-        // Set ARG to Callers ARG
+        // *ARG = pop()
         "@SP",
         "M=M-1",
         "A=M",
         "D=M",
-        "@2",
+        "@ARG",
+        "A=M",
         "M=D",
 
-        // Set LCL to Callers LCL
+        // SP = ARG + 1
+        "D=A+1",
         "@SP",
-        "M=M-1",
-        "A=M",
+        "M=D",
+
+        // THAT = *(FRAME-1)
+        "@FRAME",
         "D=M",
         "@1",
+        "D=D-A",
+        "A=D",
+        "D=M",
+        "@THAT",
         "M=D",
 
-        // Backup Return Address
-        "@SP",
-        "M=M-1",
-        "A=M",
+        // THIS = *(FRAME-2)
+        "@FRAME",
         "D=M",
-        "@R15",
+        "@2",
+        "D=D-A",
+        "A=D",
+        "D=M",
+        "@THIS",
         "M=D",
 
-        // Replace Top value on stack with return value
-        `@R13`,
+        // ARG = *(FRAME-3)
+        "@FRAME",
         "D=M",
-        "@SP",
-        "M=M-D",
-        "@R14",
+        "@3",
+        "D=D-A",
+        "A=D",
         "D=M",
-        "@SP",
-        "A=M",
+        "@ARG",
         "M=D",
 
-        // Jumping to return address
-        "@SP",
-        "M=M+1",
-        "@R15",
-        "A=M",
-        "0;JMP",
+        // LCL = *(FRAME-4)
+        "@FRAME",
+        "D=M",
+        "@4",
+        "D=D-A",
+        "A=D",
+        "D=M",
+        "@LCL",
+        "M=D",
+
+        // goto RET
+        "@returnaddress",
+        "0;JGT"
       ])
     }
   }
