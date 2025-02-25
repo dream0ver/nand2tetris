@@ -350,7 +350,8 @@ function subroutine(tokenType, tokenName, localVarCount = 0) {
 
         // goto RET
         "@returnaddress",
-        "0;JGT"
+        "A=M",
+        "0;JMP"
       ])
     }
   }
