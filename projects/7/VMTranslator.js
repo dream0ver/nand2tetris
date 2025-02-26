@@ -6,7 +6,7 @@ const INPUT_DIR_PATH = process.argv[2]
 
 let CURR_FILE_NAME = ""
 let CALL_STACK = []
-let LABEL_ID = -1
+let SERIAL_ID = -1
 
 const C_PUSH = "C_PUSH"
 const C_POP = "C_POP"
@@ -17,6 +17,8 @@ const C_ARITHMETIC = "C_ARITHMETIC"
 const C_FUNCTION = "C_FUNCTION"
 const C_RETURN = "C_RETURN"
 const C_CALL = "C_CALL"
+
+const pushD = ["@SP", "M=M+1", "A=M-1", "M=D"]
 
 const OP_CODES = {
   add: "+",
@@ -156,7 +158,7 @@ function pop(segment, index) {
 function push(segment, index) {
   switch (segment) {
     case "constant":
-      return cmd([`@${index}`, "D=A", "@SP", "M=M+1", "A=M-1", "M=D"])
+      return cmd([`@${index}`, "D=A", ...pushD])
     case "local":
     case "argument":
     case "this":
@@ -217,28 +219,14 @@ function compute(chunks) {
     case "sub":
     case "and":
     case "or":
-      return cmd([
-        "@SP",
-        "M=M-1",
-        "A=M",
-        "D=M",
-        "A=A-1",
-        `M=M${OP_CODES[op]}D`,
-      ])
+      return cmd(["@SP", "M=M-1", "A=M", "D=M", "A=A-1", `M=M${OP_CODES[op]}D`])
     case "neg":
     case "not":
-      return cmd([
-        "@SP",
-        "M=M-1",
-        "A=M",
-        `M=${OP_CODES[op]}M`,
-        "@SP",
-        "M=M+1",
-      ])
+      return cmd(["@SP", "M=M-1", "A=M", `M=${OP_CODES[op]}M`, "@SP", "M=M+1"])
     case "eq":
     case "gt":
     case "lt": {
-      ++LABEL_ID
+      ++SERIAL_ID
       return cmd([
         "@SP",
         "M=M-1",
@@ -247,20 +235,20 @@ function compute(chunks) {
         "A=A-1",
         "M=M-D",
         "D=M",
-        `@jump_true_${LABEL_ID}`,
+        `@jump_true_${SERIAL_ID}`,
         `D;${JUMP_CODES[op]}`,
         "@SP",
         "A=M",
         "A=A-1",
         "M=0",
-        `@continue_${LABEL_ID}`,
+        `@continue_${SERIAL_ID}`,
         "0;JMP",
-        `(jump_true_${LABEL_ID})`,
+        `(jump_true_${SERIAL_ID})`,
         "@SP",
         "A=M",
         "A=A-1",
         "M=-1",
-        `(continue_${LABEL_ID})`,
+        `(continue_${SERIAL_ID})`,
       ])
     }
   }
@@ -271,14 +259,69 @@ function subroutine(tokenType, tokenName, localVarCount = 0) {
     case "function": {
       CALL_STACK.push(tokenName)
       const cmds = [`(${tokenName})`]
-      for (let i = localVarCount; i > 0; i--) cmds.splice(cmds.length, 4, "@SP", "M=M+1", "A=M-1", "M=0")
+      for (let i = localVarCount; i > 0; i--)
+        cmds.splice(cmds.length, 4, "@SP", "M=M+1", "A=M-1", "M=0")
       return cmd(cmds)
+    }
+
+    case "call": {
+      ++SERIAL_ID
+
+      return cmd([
+        // push return-address
+        `@return_address_${SERIAL_ID}`,
+        "D=A",
+        ...pushD,
+
+        // push LCL
+        "@LCL",
+        "D=M",
+        ...pushD,
+
+        // push ARG
+        "@ARG",
+        "D=M",
+        ...pushD,
+
+        // push THIS
+        "@THIS",
+        "D=M",
+        ...pushD,
+
+        // push THAT
+        "@THAT",
+        "D=M",
+        ...pushD,
+
+        // ARG = SP-n-5
+        "@SP",
+        "D=M",
+        "@5",
+        "D=D-A",
+        `@${localVarCount}`,
+        "D=D-A",
+        "@ARG",
+        "M=D",
+        
+        // LCL = SP
+        "@SP",
+        "D=M",
+        "@LCL",
+        "M=D",
+
+        // goto f
+        `@${tokenName}`,
+        "0;JMP",
+
+        // (return-address)
+        `(return_address_${SERIAL_ID})`,
+      ])
     }
 
     case "return": {
       CALL_STACK.pop()
       return cmd([
-        // FRAME = LCL 
+        // FRAME = LCL
         "@LCL",
         "D=M",
         "@FRAME",
@@ -351,7 +394,7 @@ function subroutine(tokenType, tokenName, localVarCount = 0) {
         // goto RET
         "@returnaddress",
         "A=M",
-        "0;JMP"
+        "0;JMP",
       ])
     }
   }
