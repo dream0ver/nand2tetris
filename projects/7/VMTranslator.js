@@ -434,7 +434,6 @@ async function readFiles() {
 }
 
 async function main() {
-  // return console.log(CLI_FLAGS, INPUT_DIR_PATH)
   await readFiles()
 
   if (!SOURCE_FILES.length)
@@ -446,6 +445,8 @@ async function main() {
     path.join(INPUT_DIR_PATH, `${path.parse(INPUT_DIR_PATH).base}.asm`),
     "w"
   )
+
+  await outputfile.write(cmd(["@Sys.init", "0;JMP"]) + "\n")
 
   for (const curr_file of SOURCE_FILES) {
     CURR_FILE_NAME = path.parse(curr_file).name
