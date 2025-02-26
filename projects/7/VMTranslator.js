@@ -302,7 +302,7 @@ function subroutine(tokenType, tokenName, localVarCount = 0) {
         "D=D-A",
         "@ARG",
         "M=D",
-        
+
         // LCL = SP
         "@SP",
         "D=M",
@@ -401,7 +401,7 @@ function subroutine(tokenType, tokenName, localVarCount = 0) {
 }
 
 function parseInstruction(line) {
-  const tokens = line.split(" ")
+  const tokens = line.split(/[\t\s]/)
 
   switch (commandtype(tokens)) {
     case C_PUSH:
