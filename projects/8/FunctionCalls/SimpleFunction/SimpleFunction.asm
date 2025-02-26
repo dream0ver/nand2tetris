@@ -1,4 +1,3 @@
-// function SimpleFunction.test 2
 (SimpleFunction.test)
 @SP
 M=M+1
@@ -8,7 +7,6 @@ M=0
 M=M+1
 A=M-1
 M=0
-// push local 0
 @0
 D=A
 @LCL
@@ -19,7 +17,6 @@ A=M
 M=D
 @SP
 M=M+1
-// push local 1
 @1
 D=A
 @LCL
@@ -30,21 +27,18 @@ A=M
 M=D
 @SP
 M=M+1
-// add
 @SP
 M=M-1
 A=M
 D=M
 A=A-1
 M=M+D
-// not
 @SP
 M=M-1
 A=M
 M=!M
 @SP
 M=M+1
-// push argument 0
 @0
 D=A
 @ARG
@@ -55,14 +49,12 @@ A=M
 M=D
 @SP
 M=M+1
-// add
 @SP
 M=M-1
 A=M
 D=M
 A=A-1
 M=M+D
-// push argument 1
 @1
 D=A
 @ARG
@@ -73,14 +65,12 @@ A=M
 M=D
 @SP
 M=M+1
-// sub
 @SP
 M=M-1
 A=M
 D=M
 A=A-1
 M=M-D
-// return
 @LCL
 D=M
 @FRAME
@@ -136,4 +126,5 @@ D=M
 @LCL
 M=D
 @returnaddress
-0;JGT
+A=M
+0;JMP

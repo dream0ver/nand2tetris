@@ -2,7 +2,8 @@ const fs = require("fs").promises
 const path = require("path")
 
 const SOURCE_FILES = []
-const INPUT_DIR_PATH = process.argv[2]
+const CLI_FLAGS = process.argv.slice(2, process.argv.length - 1)
+const INPUT_DIR_PATH = process.argv.slice(-1)[0]
 
 let CURR_FILE_NAME = ""
 let CALL_STACK = []
@@ -426,13 +427,14 @@ function parseInstruction(line) {
 }
 
 async function readFiles() {
-  const files = await fs.readdir(process.argv[2])
+  const files = await fs.readdir(INPUT_DIR_PATH)
   files.forEach((file) => {
     if (path.extname(file).slice(1) == "vm") SOURCE_FILES.push(file)
   })
 }
 
 async function main() {
+  // return console.log(CLI_FLAGS, INPUT_DIR_PATH)
   await readFiles()
 
   if (!SOURCE_FILES.length)
@@ -452,7 +454,14 @@ async function main() {
     for await (let instruction of inputfile.readLines()) {
       instruction = instruction.trim()
       const line = parseInstruction(instruction)
-      if (line) await outputfile.write(`// ${instruction}` + "\n" + line + "\n")
+      if (line)
+        await outputfile.write(
+          (!CLI_FLAGS.includes("--no-comments")
+            ? `// ${instruction}` + "\n"
+            : "") +
+            line +
+            "\n"
+        )
     }
   }
 }
