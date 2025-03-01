@@ -1,10 +1,3 @@
-/*
-    This VM Translator accepts two optional command-line arguments:
-
-    --comments: This argument adds comments in the output file for each translated VM command.
-
-    --init: This argument includes the bootstrap code in the output file.
-*/
 const fs = require("fs").promises
 const path = require("path")
 
@@ -304,9 +297,9 @@ function subroutine(tokenType, tokenName, localVarCount = 0) {
         // ARG = SP-n-5
         "@SP",
         "D=M",
-        "@5",
-        "D=D-A",
         `@${localVarCount}`,
+        "D=D-A",
+        "@5",
         "D=D-A",
         "@ARG",
         "M=D",
@@ -454,7 +447,8 @@ async function main() {
 
   if (CLI_FLAGS.includes("--init"))
     await outputfile.write(
-      cmd(["@256", "D=A", "@SP", "M=D", "@Sys.init", "0;JMP"]) + "\n"
+      cmd(["@256", "D=A", "@SP", "M=D", subroutine("call", "Sys.init", 0)]) +
+        "\n"
     )
 
   for (const curr_file of SOURCE_FILES) {
