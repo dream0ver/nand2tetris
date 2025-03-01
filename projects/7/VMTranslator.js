@@ -446,7 +446,9 @@ async function main() {
   )
 
   if (CLI_FLAGS.includes("--init"))
-    await outputfile.write(cmd(["@Sys.init", "0;JMP"]) + "\n")
+    await outputfile.write(
+      cmd(["@256", "D=A", "@SP", "M=D", "@Sys.init", "0;JMP"]) + "\n"
+    )
 
   for (const curr_file of SOURCE_FILES) {
     CURR_FILE_NAME = path.parse(curr_file).name
