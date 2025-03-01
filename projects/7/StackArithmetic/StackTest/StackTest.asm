@@ -1,18 +1,15 @@
-// push constant 17
 @17
 D=A
 @SP
 M=M+1
 A=M-1
 M=D
-// push constant 17
 @17
 D=A
 @SP
 M=M+1
 A=M-1
 M=D
-// eq
 @SP
 M=M-1
 A=M
@@ -34,21 +31,18 @@ A=M
 A=A-1
 M=-1
 (continue_0)
-// push constant 17
 @17
 D=A
 @SP
 M=M+1
 A=M-1
 M=D
-// push constant 16
 @16
 D=A
 @SP
 M=M+1
 A=M-1
 M=D
-// eq
 @SP
 M=M-1
 A=M
@@ -70,21 +64,18 @@ A=M
 A=A-1
 M=-1
 (continue_1)
-// push constant 16
 @16
 D=A
 @SP
 M=M+1
 A=M-1
 M=D
-// push constant 17
 @17
 D=A
 @SP
 M=M+1
 A=M-1
 M=D
-// eq
 @SP
 M=M-1
 A=M
@@ -106,21 +97,18 @@ A=M
 A=A-1
 M=-1
 (continue_2)
-// push constant 892
 @892
 D=A
 @SP
 M=M+1
 A=M-1
 M=D
-// push constant 891
 @891
 D=A
 @SP
 M=M+1
 A=M-1
 M=D
-// lt
 @SP
 M=M-1
 A=M
@@ -142,21 +130,18 @@ A=M
 A=A-1
 M=-1
 (continue_3)
-// push constant 891
 @891
 D=A
 @SP
 M=M+1
 A=M-1
 M=D
-// push constant 892
 @892
 D=A
 @SP
 M=M+1
 A=M-1
 M=D
-// lt
 @SP
 M=M-1
 A=M
@@ -178,21 +163,18 @@ A=M
 A=A-1
 M=-1
 (continue_4)
-// push constant 891
 @891
 D=A
 @SP
 M=M+1
 A=M-1
 M=D
-// push constant 891
 @891
 D=A
 @SP
 M=M+1
 A=M-1
 M=D
-// lt
 @SP
 M=M-1
 A=M
@@ -214,21 +196,18 @@ A=M
 A=A-1
 M=-1
 (continue_5)
-// push constant 32767
 @32767
 D=A
 @SP
 M=M+1
 A=M-1
 M=D
-// push constant 32766
 @32766
 D=A
 @SP
 M=M+1
 A=M-1
 M=D
-// gt
 @SP
 M=M-1
 A=M
@@ -250,21 +229,18 @@ A=M
 A=A-1
 M=-1
 (continue_6)
-// push constant 32766
 @32766
 D=A
 @SP
 M=M+1
 A=M-1
 M=D
-// push constant 32767
 @32767
 D=A
 @SP
 M=M+1
 A=M-1
 M=D
-// gt
 @SP
 M=M-1
 A=M
@@ -286,21 +262,18 @@ A=M
 A=A-1
 M=-1
 (continue_7)
-// push constant 32766
 @32766
 D=A
 @SP
 M=M+1
 A=M-1
 M=D
-// push constant 32766
 @32766
 D=A
 @SP
 M=M+1
 A=M-1
 M=D
-// gt
 @SP
 M=M-1
 A=M
@@ -322,77 +295,66 @@ A=M
 A=A-1
 M=-1
 (continue_8)
-// push constant 57
 @57
 D=A
 @SP
 M=M+1
 A=M-1
 M=D
-// push constant 31
 @31
 D=A
 @SP
 M=M+1
 A=M-1
 M=D
-// push constant 53
 @53
 D=A
 @SP
 M=M+1
 A=M-1
 M=D
-// add
 @SP
 M=M-1
 A=M
 D=M
 A=A-1
 M=M+D
-// push constant 112
 @112
 D=A
 @SP
 M=M+1
 A=M-1
 M=D
-// sub
 @SP
 M=M-1
 A=M
 D=M
 A=A-1
 M=M-D
-// neg
 @SP
 M=M-1
 A=M
 M=-M
 @SP
 M=M+1
-// and
 @SP
 M=M-1
 A=M
 D=M
 A=A-1
 M=M&D
-// push constant 82
 @82
 D=A
 @SP
 M=M+1
 A=M-1
 M=D
-// or
 @SP
 M=M-1
 A=M
 D=M
 A=A-1
 M=M|D
-// not
 @SP
 M=M-1
 A=M

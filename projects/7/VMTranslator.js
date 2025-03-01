@@ -1,11 +1,9 @@
-/* 
+/*
+    This VM Translator accepts two optional command-line arguments:
 
-This VM Translator accepts two optional command-line arguments:
+    --comments: This argument adds comments in the output file for each translated VM command.
 
-  --comments: This argument adds comments in the output file for each translated VM command.
-
-  --init: This argument includes the bootstrap code in the output file.
-
+    --init: This argument includes the bootstrap code in the output file.
 */
 const fs = require("fs").promises
 const path = require("path")
