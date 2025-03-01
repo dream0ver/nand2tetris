@@ -6,7 +6,7 @@ const CLI_FLAGS = process.argv.slice(2, process.argv.length - 1)
 const INPUT_DIR_PATH = process.argv.slice(-1)[0]
 
 let CURR_FILE_NAME = ""
-let CALL_STACK = []
+let CURR_FUNCTION_SCOPE = ""
 let SERIAL_ID = -1
 
 const C_PUSH = "C_PUSH"
@@ -85,8 +85,8 @@ function cmd(cmds) {
 }
 
 function branch(tokenType, tokenName) {
-  const label = CALL_STACK.length
-    ? `${CALL_STACK.slice(-1)[0]}$${tokenName}`
+  const label = CURR_FUNCTION_SCOPE.length
+    ? `${CURR_FUNCTION_SCOPE}$${tokenName}`
     : `${tokenName}`
   switch (tokenType) {
     case "label":
@@ -258,7 +258,7 @@ function compute(chunks) {
 function subroutine(tokenType, tokenName, localVarCount = 0) {
   switch (tokenType) {
     case "function": {
-      CALL_STACK.push(tokenName)
+      CURR_FUNCTION_SCOPE = tokenName
       const cmds = [`(${tokenName})`]
       for (let i = localVarCount; i > 0; i--)
         cmds.splice(cmds.length, 4, "@SP", "M=M+1", "A=M-1", "M=0")
@@ -320,7 +320,6 @@ function subroutine(tokenType, tokenName, localVarCount = 0) {
     }
 
     case "return": {
-      CALL_STACK.pop()
       return cmd([
         // FRAME = LCL
         "@LCL",
