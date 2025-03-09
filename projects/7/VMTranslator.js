@@ -19,7 +19,8 @@ const C_FUNCTION = "C_FUNCTION"
 const C_RETURN = "C_RETURN"
 const C_CALL = "C_CALL"
 
-const pushD = ["@SP", "M=M+1", "A=M-1", "M=D"]
+const PUSH_D = ["@SP", "M=M+1", "A=M-1", "M=D"]
+const POP_D = ["@SP", "AM=M-1", "D=M"]
 
 const OP_CODES = {
   add: "+",
@@ -109,57 +110,26 @@ function pop(segment, index) {
         "D=A",
         `@${SEGMENT_CODES[segment]}`,
         "D=D+M",
-        "@addr",
+        "@address_pointer",
         "M=D",
-        "@SP",
-        "M=M-1",
-        "A=M",
-        "D=M",
-        "@addr",
+        ...POP_D,
+        "@address_pointer",
         "A=M",
         "M=D",
       ])
     case "temp":
-      return cmd([
-        "@5",
-        "D=A",
-        `@${index}`,
-        "D=D+A",
-        "@addr",
-        "M=D",
-        "@SP",
-        "M=M-1",
-        "A=M",
-        "D=M",
-        "@addr",
-        "A=M",
-        "M=D",
-      ])
+      return cmd([...POP_D, `@${index + 5}`, "M=D"])
     case "static":
-      return cmd([
-        "@SP",
-        "M=M-1",
-        "A=M",
-        "D=M",
-        `@${CURR_FILE_NAME}.${index}`,
-        "M=D",
-      ])
+      return cmd([...POP_D, `@${CURR_FILE_NAME}.${index}`, "M=D"])
     case "pointer":
-      return cmd([
-        "@SP",
-        "M=M-1",
-        "A=M",
-        "D=M",
-        index == 0 ? "@THIS" : "@THAT",
-        "M=D",
-      ])
+      return cmd([...POP_D, index == 0 ? "@THIS" : "@THAT", "M=D"])
   }
 }
 
 function push(segment, index) {
   switch (segment) {
     case "constant":
-      return cmd([`@${index}`, "D=A", ...pushD])
+      return cmd([`@${index}`, "D=A", ...PUSH_D])
     case "local":
     case "argument":
     case "this":
@@ -170,46 +140,14 @@ function push(segment, index) {
         `@${SEGMENT_CODES[segment]}`,
         "A=M+D",
         "D=M",
-        "@SP",
-        "A=M",
-        "M=D",
-        "@SP",
-        "M=M+1",
+        ...PUSH_D,
       ])
     case "temp":
-      return cmd([
-        "@5",
-        "D=A",
-        `@${index}`,
-        "D=D+A",
-        "A=D",
-        "D=M",
-        "@SP",
-        "A=M",
-        "M=D",
-        "@SP",
-        "M=M+1",
-      ])
+      return cmd([`@${index + 5}`, "D=M", ...PUSH_D])
     case "static":
-      return cmd([
-        `@${CURR_FILE_NAME}.${index}`,
-        "D=M",
-        "@SP",
-        "A=M",
-        "M=D",
-        "@SP",
-        "M=M+1",
-      ])
+      return cmd([`@${CURR_FILE_NAME}.${index}`, "D=M", ...PUSH_D])
     case "pointer":
-      return cmd([
-        index != 0 ? "@4" : "@3",
-        "D=M",
-        "@SP",
-        "A=M",
-        "M=D",
-        "@SP",
-        "M=M+1",
-      ])
+      return cmd([index != 0 ? "@4" : "@3", "D=M", ...PUSH_D])
   }
 }
 
@@ -272,27 +210,27 @@ function subroutine(tokenType, tokenName, localVarCount = 0) {
         // push return-address
         `@return_address_${SERIAL_ID}`,
         "D=A",
-        ...pushD,
+        ...PUSH_D,
 
         // push LCL
         "@LCL",
         "D=M",
-        ...pushD,
+        ...PUSH_D,
 
         // push ARG
         "@ARG",
         "D=M",
-        ...pushD,
+        ...PUSH_D,
 
         // push THIS
         "@THIS",
         "D=M",
-        ...pushD,
+        ...PUSH_D,
 
         // push THAT
         "@THAT",
         "D=M",
-        ...pushD,
+        ...PUSH_D,
 
         // ARG = SP-n-5
         "@SP",
