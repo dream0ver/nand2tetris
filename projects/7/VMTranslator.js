@@ -93,7 +93,7 @@ function branch(tokenType, tokenName) {
     case "label":
       return cmd([`(${label})`])
     case "if-goto":
-      return cmd(["@SP", "M=M-1", "A=M", "D=M", `@${label}`, `D;JNE`])
+      return cmd([...POP_D, `@${label}`, `D;JNE`])
     case "goto":
       return cmd([`@${label}`, "0;JMP"])
   }
@@ -158,34 +158,28 @@ function compute(chunks) {
     case "sub":
     case "and":
     case "or":
-      return cmd(["@SP", "M=M-1", "A=M", "D=M", "A=A-1", `M=M${OP_CODES[op]}D`])
+      return cmd([...POP_D, "A=A-1", `M=M${OP_CODES[op]}D`])
     case "neg":
     case "not":
-      return cmd(["@SP", "M=M-1", "A=M", `M=${OP_CODES[op]}M`, "@SP", "M=M+1"])
+      return cmd(["@SP", "A=M-1", `M=${OP_CODES[op]}M`])
     case "eq":
     case "gt":
     case "lt": {
       ++SERIAL_ID
       return cmd([
-        "@SP",
-        "M=M-1",
-        "A=M",
-        "D=M",
+        ...POP_D,
         "A=A-1",
-        "M=M-D",
-        "D=M",
+        "MD=M-D",
         `@jump_true_${SERIAL_ID}`,
         `D;${JUMP_CODES[op]}`,
         "@SP",
-        "A=M",
-        "A=A-1",
+        "A=M-1",
         "M=0",
         `@continue_${SERIAL_ID}`,
         "0;JMP",
         `(jump_true_${SERIAL_ID})`,
         "@SP",
-        "A=M",
-        "A=A-1",
+        "A=M-1",
         "M=-1",
         `(continue_${SERIAL_ID})`,
       ])
@@ -269,17 +263,13 @@ function subroutine(tokenType, tokenName, localVarCount = 0) {
         "@FRAME",
         "D=M",
         "@5",
-        "D=D-A",
-        "A=D",
+        "AD=D-A",
         "D=M",
         "@returnaddress",
         "M=D",
 
         // *ARG = pop()
-        "@SP",
-        "M=M-1",
-        "A=M",
-        "D=M",
+        ...POP_D,
         "@ARG",
         "A=M",
         "M=D",
@@ -303,8 +293,7 @@ function subroutine(tokenType, tokenName, localVarCount = 0) {
         "@FRAME",
         "D=M",
         "@2",
-        "D=D-A",
-        "A=D",
+        "AD=D-A",
         "D=M",
         "@THIS",
         "M=D",
@@ -313,8 +302,7 @@ function subroutine(tokenType, tokenName, localVarCount = 0) {
         "@FRAME",
         "D=M",
         "@3",
-        "D=D-A",
-        "A=D",
+        "AD=D-A",
         "D=M",
         "@ARG",
         "M=D",
@@ -323,8 +311,7 @@ function subroutine(tokenType, tokenName, localVarCount = 0) {
         "@FRAME",
         "D=M",
         "@4",
-        "D=D-A",
-        "A=D",
+        "AD=D-A",
         "D=M",
         "@LCL",
         "M=D",
