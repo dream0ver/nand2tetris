@@ -21,15 +21,11 @@ const C_CALL = "C_CALL"
 
 const PUSH_D = ["@SP", "M=M+1", "A=M-1", "M=D"]
 const POP_D = ["@SP", "AM=M-1", "D=M"]
-const INIT_CMDS = [
-  "@256",
-  "D=A",
-  "@SP",
-  "M=D",
-  subroutine("call", "Sys.init", 0),
-]
-const COMPARATOR_SUBROUTINE_CMDS = [
-  "(gt_comparator_subroutine)",
+
+const $INIT = ["@256", "D=A", "@SP", "M=D", subroutine("call", "Sys.init", 0)]
+const $COMPARATOR = [
+  // Greater Than Comparator
+  "($$gt)",
   "@SP",
   "AM=M-1",
   "D=M",
@@ -40,18 +36,19 @@ const COMPARATOR_SUBROUTINE_CMDS = [
   "@SP",
   "A=M-1",
   "M=0",
-  `(resume_gt_comparator_subroutine)`,
+  `@$$resume_gt`,
   "0;JMP",
   "(jump_if_gt_true)",
   "@SP",
   "A=M-1",
   "M=-1",
-  `(resume_gt_comparator_subroutine)`,
+  `($$resume_gt)`,
   "@returnaddress",
   "A=M",
   "0;JMP",
 
-  "(lt_comparator_subroutine)",
+  // Less Than Comparator
+  "($$lt)",
   "@SP",
   "AM=M-1",
   "D=M",
@@ -62,18 +59,19 @@ const COMPARATOR_SUBROUTINE_CMDS = [
   "@SP",
   "A=M-1",
   "M=0",
-  `(resume_lt_comparator_subroutine)`,
+  `@$$resume_lt`,
   "0;JMP",
   "(jump_if_lt_true)",
   "@SP",
   "A=M-1",
   "M=-1",
-  `(resume_lt_comparator_subroutine)`,
+  `($$resume_lt)`,
   "@returnaddress",
   "A=M",
   "0;JMP",
 
-  "(eq_comparator_subroutine)",
+  // Equal Comparator
+  "($$eq)",
   "@SP",
   "AM=M-1",
   "D=M",
@@ -84,13 +82,86 @@ const COMPARATOR_SUBROUTINE_CMDS = [
   "@SP",
   "A=M-1",
   "M=0",
-  `@resume_eq_comparator_subroutine`,
+  `@$$resume_eq`,
   "0;JMP",
   "(jump_if_eq_true)",
   "@SP",
   "A=M-1",
   "M=-1",
-  `(resume_eq_comparator_subroutine)`,
+  `($$resume_eq)`,
+  "@returnaddress",
+  "A=M",
+  "0;JMP",
+]
+const $RETURN = [
+  "($$return)",
+
+  // FRAME = LCL
+  "@LCL",
+  "D=M",
+  "@FRAME",
+  "M=D",
+
+  // RET = *(FRAME-5)
+  "@FRAME",
+  "D=M",
+  "@5",
+  "AD=D-A",
+  "D=M",
+  "@returnaddress",
+  "M=D",
+
+  // *ARG = pop()
+  "@SP",
+  "AM=M-1",
+  "D=M",
+  "@ARG",
+  "A=M",
+  "M=D",
+
+  // SP = ARG + 1
+  "D=A+1",
+  "@SP",
+  "M=D",
+
+  // THAT = *(FRAME-1)
+  "@FRAME",
+  "D=M",
+  "@1",
+  "D=D-A",
+  "A=D",
+  "D=M",
+  "@THAT",
+  "M=D",
+
+  // THIS = *(FRAME-2)
+  "@FRAME",
+  "D=M",
+  "@2",
+  "AD=D-A",
+  "D=M",
+  "@THIS",
+  "M=D",
+
+  // ARG = *(FRAME-3)
+  "@FRAME",
+  "D=M",
+  "@3",
+  "AD=D-A",
+  "D=M",
+  "@ARG",
+  "M=D",
+
+  // LCL = *(FRAME-4)
+  "@FRAME",
+  "D=M",
+  "@4",
+  "AD=D-A",
+  "D=M",
+  "@LCL",
+  "M=D",
+
+  // goto RET
   "@returnaddress",
   "A=M",
   "0;JMP",
@@ -246,7 +317,7 @@ function compute(chunks) {
           "D=A",
           `@returnaddress`,
           "M=D",
-          `@${op}_comparator_subroutine`,
+          `@$$${op}`,
           "0;JMP",
           `(resume_${SERIAL_ID})`,
         ])
@@ -338,75 +409,79 @@ function subroutine(tokenType, tokenName, localVarCount = 0) {
     }
 
     case "return": {
-      return cmd([
-        // FRAME = LCL
-        "@LCL",
-        "D=M",
-        "@FRAME",
-        "M=D",
+      if (CLI_FLAGS.includes("--init")) {
+        return cmd(["@$$return", "0;JMP"])
+      } else {
+        return cmd([
+          // FRAME = LCL
+          "@LCL",
+          "D=M",
+          "@FRAME",
+          "M=D",
 
-        // RET = *(FRAME-5)
-        "@FRAME",
-        "D=M",
-        "@5",
-        "AD=D-A",
-        "D=M",
-        "@returnaddress",
-        "M=D",
+          // RET = *(FRAME-5)
+          "@FRAME",
+          "D=M",
+          "@5",
+          "AD=D-A",
+          "D=M",
+          "@returnaddress",
+          "M=D",
 
-        // *ARG = pop()
-        ...POP_D,
-        "@ARG",
-        "A=M",
-        "M=D",
+          // *ARG = pop()
+          ...POP_D,
+          "@ARG",
+          "A=M",
+          "M=D",
 
-        // SP = ARG + 1
-        "D=A+1",
-        "@SP",
-        "M=D",
+          // SP = ARG + 1
+          "D=A+1",
+          "@SP",
+          "M=D",
 
-        // THAT = *(FRAME-1)
-        "@FRAME",
-        "D=M",
-        "@1",
-        "D=D-A",
-        "A=D",
-        "D=M",
-        "@THAT",
-        "M=D",
+          // THAT = *(FRAME-1)
+          "@FRAME",
+          "D=M",
+          "@1",
+          "D=D-A",
+          "A=D",
+          "D=M",
+          "@THAT",
+          "M=D",
 
-        // THIS = *(FRAME-2)
-        "@FRAME",
-        "D=M",
-        "@2",
-        "AD=D-A",
-        "D=M",
-        "@THIS",
-        "M=D",
+          // THIS = *(FRAME-2)
+          "@FRAME",
+          "D=M",
+          "@2",
+          "AD=D-A",
+          "D=M",
+          "@THIS",
+          "M=D",
 
-        // ARG = *(FRAME-3)
-        "@FRAME",
-        "D=M",
-        "@3",
-        "AD=D-A",
-        "D=M",
-        "@ARG",
-        "M=D",
+          // ARG = *(FRAME-3)
+          "@FRAME",
+          "D=M",
+          "@3",
+          "AD=D-A",
+          "D=M",
+          "@ARG",
+          "M=D",
 
-        // LCL = *(FRAME-4)
-        "@FRAME",
-        "D=M",
-        "@4",
-        "AD=D-A",
-        "D=M",
-        "@LCL",
-        "M=D",
+          // LCL = *(FRAME-4)
+          "@FRAME",
+          "D=M",
+          "@4",
+          "AD=D-A",
+          "D=M",
+          "@LCL",
+          "M=D",
 
-        // goto RET
-        "@returnaddress",
-        "A=M",
-        "0;JMP",
-      ])
+          // goto RET
+          "@returnaddress",
+          "A=M",
+          "0;JMP",
+        ])
+      }
     }
   }
 }
@@ -457,9 +532,7 @@ async function main() {
   )
 
   if (CLI_FLAGS.includes("--init"))
-    await outputfile.write(
-      cmd([...INIT_CMDS, ...COMPARATOR_SUBROUTINE_CMDS]) + "\n"
-    )
+    await outputfile.write(cmd([...$INIT, ...$COMPARATOR, ...$RETURN]) + "\n")
 
   for (const curr_file of SOURCE_FILES) {
     CURR_FILE_NAME = path.parse(curr_file).name
