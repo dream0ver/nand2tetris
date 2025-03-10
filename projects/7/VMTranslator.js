@@ -58,7 +58,7 @@ const COMPARATOR_SUBROUTINE_CMDS = [
   "A=A-1",
   "MD=M-D",
   "@jump_if_lt_true",
-  "D;JGT",
+  "D;JLT",
   "@SP",
   "A=M-1",
   "M=0",
@@ -80,11 +80,11 @@ const COMPARATOR_SUBROUTINE_CMDS = [
   "A=A-1",
   "MD=M-D",
   "@jump_if_eq_true",
-  "D;JGT",
+  "D;JEQ",
   "@SP",
   "A=M-1",
   "M=0",
-  `(resume_eq_comparator_subroutine)`,
+  `@resume_eq_comparator_subroutine`,
   "0;JMP",
   "(jump_if_eq_true)",
   "@SP",
@@ -242,13 +242,13 @@ function compute(chunks) {
       ++SERIAL_ID
       if (CLI_FLAGS.includes("--init")) {
         return cmd([
-          `@comparator_resume_label_${SERIAL_ID}`,
+          `@resume_${SERIAL_ID}`,
           "D=A",
           `@returnaddress`,
           "M=D",
           `@${op}_comparator_subroutine`,
           "0;JMP",
-          `(comparator_resume_label_${SERIAL_ID})`,
+          `(resume_${SERIAL_ID})`,
         ])
       } else {
         return cmd([
