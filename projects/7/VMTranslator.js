@@ -21,6 +21,80 @@ const C_CALL = "C_CALL"
 
 const PUSH_D = ["@SP", "M=M+1", "A=M-1", "M=D"]
 const POP_D = ["@SP", "AM=M-1", "D=M"]
+const INIT_CMDS = [
+  "@256",
+  "D=A",
+  "@SP",
+  "M=D",
+  subroutine("call", "Sys.init", 0),
+]
+const COMPARATOR_SUBROUTINE_CMDS = [
+  "(gt_comparator_subroutine)",
+  "@SP",
+  "AM=M-1",
+  "D=M",
+  "A=A-1",
+  "MD=M-D",
+  "@jump_if_gt_true",
+  "D;JGT",
+  "@SP",
+  "A=M-1",
+  "M=0",
+  `(resume_gt_comparator_subroutine)`,
+  "0;JMP",
+  "(jump_if_gt_true)",
+  "@SP",
+  "A=M-1",
+  "M=-1",
+  `(resume_gt_comparator_subroutine)`,
+  "@returnaddress",
+  "A=M",
+  "0;JMP",
+
+  "(lt_comparator_subroutine)",
+  "@SP",
+  "AM=M-1",
+  "D=M",
+  "A=A-1",
+  "MD=M-D",
+  "@jump_if_lt_true",
+  "D;JGT",
+  "@SP",
+  "A=M-1",
+  "M=0",
+  `(resume_lt_comparator_subroutine)`,
+  "0;JMP",
+  "(jump_if_lt_true)",
+  "@SP",
+  "A=M-1",
+  "M=-1",
+  `(resume_lt_comparator_subroutine)`,
+  "@returnaddress",
+  "A=M",
+  "0;JMP",
+
+  "(eq_comparator_subroutine)",
+  "@SP",
+  "AM=M-1",
+  "D=M",
+  "A=A-1",
+  "MD=M-D",
+  "@jump_if_eq_true",
+  "D;JGT",
+  "@SP",
+  "A=M-1",
+  "M=0",
+  `(resume_eq_comparator_subroutine)`,
+  "0;JMP",
+  "(jump_if_eq_true)",
+  "@SP",
+  "A=M-1",
+  "M=-1",
+  `(resume_eq_comparator_subroutine)`,
+  "@returnaddress",
+  "A=M",
+  "0;JMP",
+]
 
 const OP_CODES = {
   add: "+",
@@ -166,23 +240,35 @@ function compute(chunks) {
     case "gt":
     case "lt": {
       ++SERIAL_ID
-      return cmd([
-        ...POP_D,
-        "A=A-1",
-        "MD=M-D",
-        `@jump_true_${SERIAL_ID}`,
-        `D;${JUMP_CODES[op]}`,
-        "@SP",
-        "A=M-1",
-        "M=0",
-        `@continue_${SERIAL_ID}`,
-        "0;JMP",
-        `(jump_true_${SERIAL_ID})`,
-        "@SP",
-        "A=M-1",
-        "M=-1",
-        `(continue_${SERIAL_ID})`,
-      ])
+      if (CLI_FLAGS.includes("--init")) {
+        return cmd([
+          `@comparator_resume_label_${SERIAL_ID}`,
+          "D=A",
+          `@returnaddress`,
+          "M=D",
+          `@${op}_comparator_subroutine`,
+          "0;JMP",
+          `(comparator_resume_label_${SERIAL_ID})`,
+        ])
+      } else {
+        return cmd([
+          ...POP_D,
+          "A=A-1",
+          "MD=M-D",
+          `@jump_true_${SERIAL_ID}`,
+          `D;${JUMP_CODES[op]}`,
+          "@SP",
+          "A=M-1",
+          "M=0",
+          `@continue_${SERIAL_ID}`,
+          "0;JMP",
+          `(jump_true_${SERIAL_ID})`,
+          "@SP",
+          "A=M-1",
+          "M=-1",
+          `(continue_${SERIAL_ID})`,
+        ])
+      }
     }
   }
 }
@@ -372,8 +458,7 @@ async function main() {
 
   if (CLI_FLAGS.includes("--init"))
     await outputfile.write(
-      cmd(["@256", "D=A", "@SP", "M=D", subroutine("call", "Sys.init", 0)]) +
-        "\n"
+      cmd([...INIT_CMDS, ...COMPARATOR_SUBROUTINE_CMDS]) + "\n"
     )
 
   for (const curr_file of SOURCE_FILES) {
