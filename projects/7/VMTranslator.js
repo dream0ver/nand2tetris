@@ -18,7 +18,7 @@ const C_ARITHMETIC = "C_ARITHMETIC"
 const C_FUNCTION = "C_FUNCTION"
 const C_RETURN = "C_RETURN"
 const C_CALL = "C_CALL"
-
+const STATS = {}
 const PUSH_D = ["@SP", "M=M+1", "A=M-1", "M=D"]
 const POP_D = ["@SP", "AM=M-1", "D=M"]
 
@@ -188,6 +188,8 @@ const SEGMENT_CODES = {
 }
 
 function commandtype(tokens) {
+  STATS[tokens[0]] ? STATS[tokens[0]]++ : (STATS[tokens[0]] = 1)
+
   switch (tokens[0]) {
     case "push":
       return C_PUSH
@@ -478,6 +480,8 @@ async function main() {
         )
     }
   }
+
+  if (CLI_FLAGS.includes("--debug")) console.log(STATS)
 }
 
 try {
