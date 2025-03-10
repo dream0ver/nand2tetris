@@ -408,81 +408,10 @@ function subroutine(tokenType, tokenName, localVarCount = 0) {
       ])
     }
 
-    case "return": {
-      if (CLI_FLAGS.includes("--init")) {
-        return cmd(["@$$return", "0;JMP"])
-      } else {
-        return cmd([
-          // FRAME = LCL
-          "@LCL",
-          "D=M",
-          "@FRAME",
-          "M=D",
-
-          // RET = *(FRAME-5)
-          "@FRAME",
-          "D=M",
-          "@5",
-          "AD=D-A",
-          "D=M",
-          "@returnaddress",
-          "M=D",
-
-          // *ARG = pop()
-          ...POP_D,
-          "@ARG",
-          "A=M",
-          "M=D",
-
-          // SP = ARG + 1
-          "D=A+1",
-          "@SP",
-          "M=D",
-
-          // THAT = *(FRAME-1)
-          "@FRAME",
-          "D=M",
-          "@1",
-          "D=D-A",
-          "A=D",
-          "D=M",
-          "@THAT",
-          "M=D",
-
-          // THIS = *(FRAME-2)
-          "@FRAME",
-          "D=M",
-          "@2",
-          "AD=D-A",
-          "D=M",
-          "@THIS",
-          "M=D",
-
-          // ARG = *(FRAME-3)
-          "@FRAME",
-          "D=M",
-          "@3",
-          "AD=D-A",
-          "D=M",
-          "@ARG",
-          "M=D",
-
-          // LCL = *(FRAME-4)
-          "@FRAME",
-          "D=M",
-          "@4",
-          "AD=D-A",
-          "D=M",
-          "@LCL",
-          "M=D",
-
-          // goto RET
-          "@returnaddress",
-          "A=M",
-          "0;JMP",
-        ])
-      }
-    }
+    case "return":
+      return CLI_FLAGS.includes("--init")
+        ? cmd(["@$$return", "0;JMP"])
+        : cmd($RETURN.slice(1))
   }
 }
 
