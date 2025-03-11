@@ -23,6 +23,7 @@ const PUSH_D = ["@SP", "M=M+1", "A=M-1", "M=D"]
 const POP_D = ["@SP", "AM=M-1", "D=M"]
 
 const $INIT = ["@256", "D=A", "@SP", "M=D", subroutine("call", "Sys.init", 0)]
+
 const $COMPARATOR = [
   // Greater Than Comparator
   "($$gt)",
@@ -93,6 +94,7 @@ const $COMPARATOR = [
   "A=M",
   "0;JMP",
 ]
+
 const $RETURN = [
   "($$return)",
 
@@ -163,6 +165,50 @@ const $RETURN = [
 
   // goto RET
   "@returnaddress",
+  "A=M",
+  "0;JMP",
+]
+
+const $CALL = [
+  "($$call)",
+  // push LCL
+  "@LCL",
+  "D=M",
+  ...PUSH_D,
+
+  // push ARG
+  "@ARG",
+  "D=M",
+  ...PUSH_D,
+
+  // push THIS
+  "@THIS",
+  "D=M",
+  ...PUSH_D,
+
+  // push THAT
+  "@THAT",
+  "D=M",
+  ...PUSH_D,
+
+  // ARG = SP-n-5
+  "@SP",
+  "D=M",
+  `@local_var_count`,
+  "D=D-M",
+  "@5",
+  "D=D-A",
+  "@ARG",
+  "M=D",
+
+  // LCL = SP
+  "@SP",
+  "D=M",
+  "@LCL",
+  "M=D",
+
+  // goto f
+  `@function_name`,
   "A=M",
   "0;JMP",
 ]
@@ -313,35 +359,33 @@ function compute(chunks) {
     case "gt":
     case "lt": {
       ++SERIAL_ID
-      if (CLI_FLAGS.includes("--init")) {
-        return cmd([
-          `@resume_${SERIAL_ID}`,
-          "D=A",
-          `@returnaddress`,
-          "M=D",
-          `@$$${op}`,
-          "0;JMP",
-          `(resume_${SERIAL_ID})`,
-        ])
-      } else {
-        return cmd([
-          ...POP_D,
-          "A=A-1",
-          "MD=M-D",
-          `@jump_true_${SERIAL_ID}`,
-          `D;${JUMP_CODES[op]}`,
-          "@SP",
-          "A=M-1",
-          "M=0",
-          `@continue_${SERIAL_ID}`,
-          "0;JMP",
-          `(jump_true_${SERIAL_ID})`,
-          "@SP",
-          "A=M-1",
-          "M=-1",
-          `(continue_${SERIAL_ID})`,
-        ])
-      }
+      return CLI_FLAGS.includes("--init")
+        ? cmd([
+            `@resume_${SERIAL_ID}`,
+            "D=A",
+            `@returnaddress`,
+            "M=D",
+            `@$$${op}`,
+            "0;JMP",
+            `(resume_${SERIAL_ID})`,
+          ])
+        : cmd([
+            ...POP_D,
+            "A=A-1",
+            "MD=M-D",
+            `@jump_true_${SERIAL_ID}`,
+            `D;${JUMP_CODES[op]}`,
+            "@SP",
+            "A=M-1",
+            "M=0",
+            `@continue_${SERIAL_ID}`,
+            "0;JMP",
+            `(jump_true_${SERIAL_ID})`,
+            "@SP",
+            "A=M-1",
+            "M=-1",
+            `(continue_${SERIAL_ID})`,
+          ])
     }
   }
 }
@@ -358,56 +402,74 @@ function subroutine(tokenType, tokenName, localVarCount = 0) {
 
     case "call": {
       ++SERIAL_ID
+      return CLI_FLAGS.includes("--init")
+        ? cmd([
+            `@return_address_${SERIAL_ID}`,
+            "D=A",
+            `@returnaddress`,
+            "M=D",
+            ...PUSH_D,
+            `@${tokenName}`,
+            "D=A",
+            "@function_name",
+            "M=D",
+            `@${localVarCount}`,
+            "D=A",
+            "@local_var_count",
+            "M=D",
+            "@$$call",
+            "0;JMP",
+            `(return_address_${SERIAL_ID})`,
+          ])
+        : cmd([
+            // push return-address
+            `@return_address_${SERIAL_ID}`,
+            "D=A",
+            ...PUSH_D,
 
-      return cmd([
-        // push return-address
-        `@return_address_${SERIAL_ID}`,
-        "D=A",
-        ...PUSH_D,
+            // push LCL
+            "@LCL",
+            "D=M",
+            ...PUSH_D,
 
-        // push LCL
-        "@LCL",
-        "D=M",
-        ...PUSH_D,
+            // push ARG
+            "@ARG",
+            "D=M",
+            ...PUSH_D,
 
-        // push ARG
-        "@ARG",
-        "D=M",
-        ...PUSH_D,
+            // push THIS
+            "@THIS",
+            "D=M",
+            ...PUSH_D,
 
-        // push THIS
-        "@THIS",
-        "D=M",
-        ...PUSH_D,
+            // push THAT
+            "@THAT",
+            "D=M",
+            ...PUSH_D,
 
-        // push THAT
-        "@THAT",
-        "D=M",
-        ...PUSH_D,
+            // ARG = SP-n-5
+            "@SP",
+            "D=M",
+            `@${localVarCount}`,
+            "D=D-A",
+            "@5",
+            "D=D-A",
+            "@ARG",
+            "M=D",
 
-        // ARG = SP-n-5
-        "@SP",
-        "D=M",
-        `@${localVarCount}`,
-        "D=D-A",
-        "@5",
-        "D=D-A",
-        "@ARG",
-        "M=D",
+            // LCL = SP
+            "@SP",
+            "D=M",
+            "@LCL",
+            "M=D",
 
-        // LCL = SP
-        "@SP",
-        "D=M",
-        "@LCL",
-        "M=D",
+            // goto f
+            `@${tokenName}`,
+            "0;JMP",
 
-        // goto f
-        `@${tokenName}`,
-        "0;JMP",
-
-        // (return-address)
-        `(return_address_${SERIAL_ID})`,
-      ])
+            // (return-address)
+            `(return_address_${SERIAL_ID})`,
+          ])
     }
 
     case "return":
@@ -463,7 +525,9 @@ async function main() {
   )
 
   if (CLI_FLAGS.includes("--init"))
-    await outputfile.write(cmd([...$INIT, ...$COMPARATOR, ...$RETURN]) + "\n")
+    await outputfile.write(
+      cmd([...$INIT, ...$COMPARATOR, ...$RETURN, ...$CALL]) + "\n"
+    )
 
   for (const curr_file of SOURCE_FILES) {
     CURR_FILE_NAME = path.parse(curr_file).name
