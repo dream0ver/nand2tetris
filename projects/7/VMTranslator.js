@@ -311,7 +311,7 @@ function pop(segment, index) {
         "M=D",
       ])
     case "temp":
-      return cmd([...POP_D, `@${index + 5}`, "M=D"])
+      return cmd([...POP_D, `@${Number(index) + 5}`, "M=D"])
     case "static":
       return cmd([...POP_D, `@${CURR_FILE_NAME}.${index}`, "M=D"])
     case "pointer":
@@ -336,7 +336,7 @@ function push(segment, index) {
         ...PUSH_D,
       ])
     case "temp":
-      return cmd([`@${index + 5}`, "D=M", ...PUSH_D])
+      return cmd([`@${Number(index) + 5}`, "D=M", ...PUSH_D])
     case "static":
       return cmd([`@${CURR_FILE_NAME}.${index}`, "D=M", ...PUSH_D])
     case "pointer":

@@ -1,3 +1,4 @@
+// push argument 1         // sets THAT, the base address of the
 @1
 D=A
 @ARG
@@ -7,48 +8,53 @@ D=M
 M=M+1
 A=M-1
 M=D
+// pop pointer 1           // that segment, to argument[1]
 @SP
-M=M-1
-A=M
+AM=M-1
 D=M
 @THAT
 M=D
+// push constant 0         // sets the series' first and second
 @0
 D=A
 @SP
 M=M+1
 A=M-1
 M=D
+// pop that 0              // elements to 0 and 1, respectively
 @0
 D=A
 @THAT
 D=D+M
-@addr
+@R13
 M=D
 @SP
 AM=M-1
 D=M
-@addr
+@R13
 A=M
 M=D
+// push constant 1
 @1
 D=A
 @SP
 M=M+1
 A=M-1
 M=D
+// pop that 1
 @1
 D=A
 @THAT
 D=D+M
-@addr
+@R13
 M=D
 @SP
 AM=M-1
 D=M
-@addr
+@R13
 A=M
 M=D
+// push argument 0         // sets n, the number of remaining elements
 @0
 D=A
 @ARG
@@ -58,31 +64,35 @@ D=M
 M=M+1
 A=M-1
 M=D
+// push constant 2         // to be computed, to argument[0] minus 2,
 @2
 D=A
 @SP
 M=M+1
 A=M-1
 M=D
+// sub                     // since 2 elements were already computed.
 @SP
-M=M-1
-A=M
+AM=M-1
 D=M
 A=A-1
 M=M-D
+// pop argument 0
 @0
 D=A
 @ARG
 D=D+M
-@addr
+@R13
 M=D
 @SP
 AM=M-1
 D=M
-@addr
+@R13
 A=M
 M=D
+// label LOOP
 (LOOP)
+// push argument 0
 @0
 D=A
 @ARG
@@ -92,15 +102,18 @@ D=M
 M=M+1
 A=M-1
 M=D
+// if-goto COMPUTE_ELEMENT // if n > 0, goto COMPUTE_ELEMENT
 @SP
-M=M-1
-A=M
+AM=M-1
 D=M
 @COMPUTE_ELEMENT
 D;JNE
+// goto END                // otherwise, goto END
 @END
 0;JMP
+// label COMPUTE_ELEMENT
 (COMPUTE_ELEMENT)
+// push that 0
 @0
 D=A
 @THAT
@@ -110,6 +123,7 @@ D=M
 M=M+1
 A=M-1
 M=D
+// push that 1
 @1
 D=A
 @THAT
@@ -119,48 +133,52 @@ D=M
 M=M+1
 A=M-1
 M=D
+// add
 @SP
-M=M-1
-A=M
+AM=M-1
 D=M
 A=A-1
 M=M+D
+// pop that 2
 @2
 D=A
 @THAT
 D=D+M
-@addr
+@R13
 M=D
 @SP
 AM=M-1
 D=M
-@addr
+@R13
 A=M
 M=D
+// push pointer 1
 @4
 D=M
 @SP
 M=M+1
 A=M-1
 M=D
+// push constant 1
 @1
 D=A
 @SP
 M=M+1
 A=M-1
 M=D
+// add
 @SP
-M=M-1
-A=M
+AM=M-1
 D=M
 A=A-1
 M=M+D
+// pop pointer 1
 @SP
-M=M-1
-A=M
+AM=M-1
 D=M
 @THAT
 M=D
+// push argument 0
 @0
 D=A
 @ARG
@@ -170,30 +188,34 @@ D=M
 M=M+1
 A=M-1
 M=D
+// push constant 1
 @1
 D=A
 @SP
 M=M+1
 A=M-1
 M=D
+// sub
 @SP
-M=M-1
-A=M
+AM=M-1
 D=M
 A=A-1
 M=M-D
+// pop argument 0
 @0
 D=A
 @ARG
 D=D+M
-@addr
+@R13
 M=D
 @SP
 AM=M-1
 D=M
-@addr
+@R13
 A=M
 M=D
+// goto LOOP
 @LOOP
 0;JMP
+// label END
 (END)
