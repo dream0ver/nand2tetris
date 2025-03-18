@@ -1,0 +1,1 @@
+The VMTranslator in Project 7 is capable of translating VM programs specific to this project. When the command-line argument --init is provided, it functions as a full-scale translator, enabling it to compile programs for Project 8. However, if this CLI argument is omitted, it operates as a basic translator, suitable for translating programs from Project 7.

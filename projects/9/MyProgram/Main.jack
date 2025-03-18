@@ -1,0 +1,7 @@
+class Main {
+    function void main(){
+        do Output.printString("dream0ver");
+        do Output.println();
+        return;
+    }
+}
