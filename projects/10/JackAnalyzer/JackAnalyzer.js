@@ -16,7 +16,7 @@ async function openFiles() {
 async function main() {
   await openFiles()
   for (const file of SOURCE_FILES) {
-    const tokenizer = new Tokenizer(file)
+    new Tokenizer(file).tokenize()
   }
 }
 

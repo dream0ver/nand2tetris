@@ -12,7 +12,15 @@ class Tokenizer {
 
   output = ""
 
-  current_token = ""
+  current = ""
+
+  allowed_tokens = {
+    SYMBOL: "SYMBOL",
+    IDENTIFIER: "IDENTIFIER",
+    KEYWORD: "KEYWORD",
+    STRING_CONST: "STRING_CONST",
+    INT_CONST: "INT_CONST",
+  }
 
   allowed_symbols = [
     "{",
@@ -64,7 +72,11 @@ class Tokenizer {
     this.filepath = filepath
     this.filename = path.parse(filepath).name
     this.processFiles()
-    this.tokenize()
+  }
+
+  reset() {
+    this.fp = 0
+    fs.writeFileSync(this.output, "", "utf8")
   }
 
   processFiles() {
@@ -92,6 +104,13 @@ class Tokenizer {
 
   isNumber(symbol) {
     return !isNaN(Number(symbol))
+  }
+
+  resetCurrentToken() {
+    this.current = {
+      type: "",
+      token: "",
+    }
   }
 
   writeToXml(tokenType, token) {
@@ -132,6 +151,40 @@ class Tokenizer {
     return [" ", "\n", "\t", "\r"].includes(token)
   }
 
+  tokenType() {
+    return this.current.type
+  }
+
+  getKeyword() {
+    return this.current.type == this.allowed_keywords.KEYWORD
+      ? this.current.token
+      : null
+  }
+
+  getIdentifier() {
+    return this.current.type == this.allowed_keywords.IDENTIFIER
+      ? this.current.token
+      : null
+  }
+
+  getSymbol() {
+    return this.current.type == this.allowed_keywords.SYMBOL
+      ? this.current.token
+      : null
+  }
+
+  getStringVal() {
+    return this.current.type == this.allowed_keywords.STRING_CONST
+      ? this.current.token
+      : null
+  }
+
+  getIntVal() {
+    return this.current.type == this.allowed_keywords.INT_CONST
+      ? this.current.token
+      : null
+  }
+
   advance() {
     if (this.isWhiteSpace(this.input[this.fp])) {
       this.fp++
@@ -147,36 +200,41 @@ class Tokenizer {
       }
       this.fp = this.fp + 2
     } else {
-      this.current_token = ""
+      this.resetCurrentToken()
 
       if (this.isSymbol(this.input[this.fp])) {
         this.writeToXml("symbol", this.getXmlSymbol(this.input[this.fp]))
-        this.current_token = this.input[this.fp]
+        this.current.token = this.input[this.fp]
+        this.current.type = this.allowed_tokens.SYMBOL
         this.fp++
       } else if (this.isNumber(this.input[this.fp])) {
         while (this.isNumber(this.input[this.fp])) {
-          this.current_token = this.current_token + this.input[this.fp]
+          this.current.token = this.current.token + this.input[this.fp]
           this.fp++
         }
-        this.writeToXml("integerConstant", this.current_token)
+        this.current.type = this.allowed_tokens.INT_CONST
+        this.writeToXml("integerConstant", this.current.token)
       } else if (this.isString(this.input[this.fp])) {
         this.fp++
         while (!this.isString(this.input[this.fp])) {
-          this.current_token = this.current_token + this.input[this.fp]
+          this.current.token = this.current.token + this.input[this.fp]
           this.fp++
         }
-        this.writeToXml("stringConstant", this.current_token)
+        this.current.type = this.allowed_tokens.STRING_CONST
+        this.writeToXml("stringConstant", this.current.token)
         this.fp++
       } else if (this.isValidIdentifierChar(this.input[this.fp])) {
         while (this.isValidIdentifierChar(this.input[this.fp])) {
-          this.current_token = this.current_token + this.input[this.fp]
+          this.current.token = this.current.token + this.input[this.fp]
           this.fp++
         }
 
-        if (this.allowed_keywords.includes(this.current_token)) {
-          this.writeToXml("keyword", this.current_token)
+        if (this.allowed_keywords.includes(this.current)) {
+          this.current.type = this.allowed_tokens.KEYWORD
+          this.writeToXml("keyword", this.current.token)
         } else {
-          this.writeToXml("identifier", this.current_token)
+          this.current.type = this.allowed_tokens.IDENTIFIER
+          this.writeToXml("identifier", this.current.token)
         }
       } else {
         this.fp++
