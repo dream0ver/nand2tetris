@@ -1,21 +1,20 @@
-const fsPromises = require("fs").promises
 const fs = require("fs")
 const path = require("path")
 
 class Tokenizer {
   filepath = ""
+
   filename = ""
+
   fp = 0
 
-  tokens = {
-    IDENTIFIER: "IDENTIFIER",
-    STRING_CONST: "STRING_CONST",
-    INT_CONST: "INT_CONST",
-    KEYWORD: "KEYWORD",
-    SYMBOL: "SYMBOL",
-  }
+  input = ""
 
-  symbols = [
+  output = ""
+
+  current_token = ""
+
+  allowed_symbols = [
     "{",
     "}",
     "(",
@@ -37,7 +36,7 @@ class Tokenizer {
     "~",
   ]
 
-  keywords = [
+  allowed_keywords = [
     "class",
     "method",
     "function",
@@ -64,13 +63,19 @@ class Tokenizer {
   constructor(filepath) {
     this.filepath = filepath
     this.filename = path.parse(filepath).name
-    this.init()
-    this.inputfile
-    this.outputfile
+    this.processFiles()
+    this.tokenize()
   }
 
-  async init() {
-    await this.processFiles()
+  processFiles() {
+    this.input = fs.readFileSync(path.join(this.filepath), "utf8")
+
+    this.output = path.join(
+      path.dirname(this.filepath),
+      `${this.filename}T_Compiled.xml`
+    )
+
+    fs.writeFileSync(this.output, "", "utf8")
   }
 
   isValidIdentifierChar(char) {
@@ -78,7 +83,7 @@ class Tokenizer {
   }
 
   isSymbol(symbol) {
-    return this.symbols.includes(symbol)
+    return this.allowed_symbols.includes(symbol)
   }
 
   isString(symbol) {
@@ -90,14 +95,17 @@ class Tokenizer {
   }
 
   writeToXml(tokenType, token) {
-    if (tokenType == "xmlStart") {
-      return this.outputfile.write("<tokens>" + "\n")
-    } else if (tokenType == "xmlEnd") {
-      return this.outputfile.write("</tokens>" + "\n")
-    } else {
-      return this.outputfile.write(
-        `<${tokenType}>` + " " + `${token}` + " " + `</${tokenType}>` + "\n"
-      )
+    switch (tokenType) {
+      case "xmlStart":
+        return fs.appendFileSync(this.output, "<tokens>" + "\n", "utf-8")
+      case "xmlEnd":
+        return fs.appendFileSync(this.output, "</tokens>" + "\n", "utf-8")
+      default:
+        return fs.appendFileSync(
+          this.output,
+          `<${tokenType}>` + " " + `${token}` + " " + `</${tokenType}>` + "\n",
+          "utf-8"
+        )
     }
   }
 
@@ -117,85 +125,68 @@ class Tokenizer {
   }
 
   hasMoreTokens() {
-    return this.fp < this.inputfile.length
+    return this.fp < this.input.length
   }
 
   isWhiteSpace(token) {
     return [" ", "\n", "\t", "\r"].includes(token)
   }
 
-  async processFiles() {
-    this.inputfile = fs.readFileSync(path.join(this.filepath), "utf8")
-    this.outputfile = await fsPromises.open(
-      path.join(path.dirname(this.filepath), `${this.filename}T_Compiled.xml`),
-      "w"
-    )
-
-    await this.writeToXml("xmlStart")
-    while (this.hasMoreTokens()) {
-      if (this.isWhiteSpace(this.inputfile[this.fp])) {
+  advance() {
+    if (this.isWhiteSpace(this.input[this.fp])) {
+      this.fp++
+    } else if (this.input[this.fp] == "/" && this.input[this.fp + 1] == "/") {
+      this.fp = this.fp + 2
+      while (this.input[this.fp] != "\n") {
         this.fp++
-      } else if (
-        this.inputfile[this.fp] == "/" &&
-        this.inputfile[this.fp + 1] == "/"
-      ) {
-        this.fp = this.fp + 2
-        while (this.inputfile[this.fp] != "\n") {
+      }
+    } else if (this.input[this.fp] == "/" && this.input[this.fp + 1] == "*") {
+      this.fp = this.fp + 2
+      while (!(this.input[this.fp] == "*" && this.input[this.fp + 1] == "/")) {
+        this.fp++
+      }
+      this.fp = this.fp + 2
+    } else {
+      this.current_token = ""
+
+      if (this.isSymbol(this.input[this.fp])) {
+        this.writeToXml("symbol", this.getXmlSymbol(this.input[this.fp]))
+        this.current_token = this.input[this.fp]
+        this.fp++
+      } else if (this.isNumber(this.input[this.fp])) {
+        while (this.isNumber(this.input[this.fp])) {
+          this.current_token = this.current_token + this.input[this.fp]
           this.fp++
         }
-      } else if (
-        this.inputfile[this.fp] == "/" &&
-        this.inputfile[this.fp + 1] == "*"
-      ) {
-        this.fp = this.fp + 2
-        while (
-          !(
-            this.inputfile[this.fp] == "*" && this.inputfile[this.fp + 1] == "/"
-          )
-        ) {
+        this.writeToXml("integerConstant", this.current_token)
+      } else if (this.isString(this.input[this.fp])) {
+        this.fp++
+        while (!this.isString(this.input[this.fp])) {
+          this.current_token = this.current_token + this.input[this.fp]
           this.fp++
         }
-        this.fp = this.fp + 2
-      } else {
-        let curr_token = ""
+        this.writeToXml("stringConstant", this.current_token)
+        this.fp++
+      } else if (this.isValidIdentifierChar(this.input[this.fp])) {
+        while (this.isValidIdentifierChar(this.input[this.fp])) {
+          this.current_token = this.current_token + this.input[this.fp]
+          this.fp++
+        }
 
-        if (this.isSymbol(this.inputfile[this.fp])) {
-          await this.writeToXml(
-            "symbol",
-            this.getXmlSymbol(this.inputfile[this.fp])
-          )
-          this.fp++
-        } else if (this.isNumber(this.inputfile[this.fp])) {
-          while (this.isNumber(this.inputfile[this.fp])) {
-            curr_token = curr_token + this.inputfile[this.fp]
-            this.fp++
-          }
-          await this.writeToXml("integerConstant", curr_token)
-        } else if (this.isString(this.inputfile[this.fp])) {
-          this.fp++
-          while (!this.isString(this.inputfile[this.fp])) {
-            curr_token = curr_token + this.inputfile[this.fp]
-            this.fp++
-          }
-          await this.writeToXml("stringConstant", curr_token)
-          this.fp++
-        } else if (this.isValidIdentifierChar(this.inputfile[this.fp])) {
-          while (this.isValidIdentifierChar(this.inputfile[this.fp])) {
-            curr_token = curr_token + this.inputfile[this.fp]
-            this.fp++
-          }
-
-          if (this.keywords.includes(curr_token)) {
-            await this.writeToXml("keyword", curr_token)
-          } else {
-            await this.writeToXml("identifier", curr_token)
-          }
+        if (this.allowed_keywords.includes(this.current_token)) {
+          this.writeToXml("keyword", this.current_token)
         } else {
-          this.fp++
+          this.writeToXml("identifier", this.current_token)
         }
+      } else {
+        this.fp++
       }
     }
-    await this.writeToXml("xmlEnd")
+  }
+  tokenize() {
+    this.writeToXml("xmlStart")
+    while (this.hasMoreTokens()) this.advance()
+    this.writeToXml("xmlEnd")
   }
 }
 
