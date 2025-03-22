@@ -229,7 +229,7 @@ class Tokenizer {
           this.fp++
         }
 
-        if (this.allowed_keywords.includes(this.current)) {
+        if (this.allowed_keywords.includes(this.current.token)) {
           this.current.type = this.allowed_tokens.KEYWORD
           this.writeToXml("keyword", this.current.token)
         } else {
