@@ -70,11 +70,11 @@ const isNumber = (symbol) => !isNaN(Number(symbol))
 
 const writeToXml = (tokenType, token, out) => {
   if (tokenType == "xmlStart") {
-    out.write("<tokens>" + "\n")
+    return out.write("<tokens>" + "\n")
   } else if (tokenType == "xmlEnd") {
-    out.write("</tokens>" + "\n")
+    return out.write("</tokens>" + "\n")
   } else {
-    out.write(
+    return out.write(
       `<${tokenType}>` + " " + `${token}` + " " + `</${tokenType}>` + "\n"
     )
   }
