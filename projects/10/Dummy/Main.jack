@@ -1,1 +1,4 @@
-class Main {}
+class Main {
+   field char hello, world;
+   static int age, weight;
+}

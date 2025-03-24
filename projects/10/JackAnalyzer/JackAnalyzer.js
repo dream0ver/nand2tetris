@@ -1,6 +1,6 @@
 const fs = require("fs")
 const path = require("path")
-const Tokenizer = require("./Tokenizer").Tokenizer
+const CompilationEngine = require("./CompilationEngine").CompilationEngine
 
 SOURCE_FILES = []
 const DIR_PATH = process.argv.slice(-1)[0]
@@ -15,13 +15,7 @@ function openFiles() {
 
 function main() {
   openFiles()
-  for (const file of SOURCE_FILES) {
-    const tokenizer = new Tokenizer(file)
-    while (tokenizer.hasMoreTokens()) {
-      tokenizer.advance()
-      console.log(tokenizer.current.token)
-    }
-  }
+  for (const file of SOURCE_FILES) new CompilationEngine(file).compile()
 }
 
 main()

@@ -17,11 +17,11 @@ class Tokenizer {
   writelock = true
 
   allowed_tokens = {
-    SYMBOL: "SYMBOL",
-    IDENTIFIER: "IDENTIFIER",
-    KEYWORD: "KEYWORD",
-    STRING_CONST: "STRING_CONST",
-    INT_CONST: "INT_CONST",
+    SYMBOL: "symbol",
+    IDENTIFIER: "identifier",
+    KEYWORD: "keyword",
+    STRING_CONST: "stringConstant",
+    INT_CONST: "integerConstant",
   }
 
   allowed_symbols = [
