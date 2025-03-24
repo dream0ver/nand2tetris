@@ -16,7 +16,11 @@ function openFiles() {
 function main() {
   openFiles()
   for (const file of SOURCE_FILES) {
-    new Tokenizer(file).tokenize()
+    const tokenizer = new Tokenizer(file)
+    while (tokenizer.hasMoreTokens()) {
+      tokenizer.advance()
+      console.log(tokenizer.current.token)
+    }
   }
 }
 

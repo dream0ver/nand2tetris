@@ -14,6 +14,8 @@ class Tokenizer {
 
   current = ""
 
+  writelock = true
+
   allowed_tokens = {
     SYMBOL: "SYMBOL",
     IDENTIFIER: "IDENTIFIER",
@@ -71,23 +73,19 @@ class Tokenizer {
   constructor(filepath) {
     this.filepath = filepath
     this.filename = path.parse(filepath).name
-    this.processFiles()
+    this.readFile()
     this.resetCurrentToken()
   }
 
-  reset() {
-    this.fp = 0
-    fs.writeFileSync(this.output, "", "utf8")
+  readFile() {
+    this.input = fs.readFileSync(path.join(this.filepath), "utf8")
   }
 
-  processFiles() {
-    this.input = fs.readFileSync(path.join(this.filepath), "utf8")
-
+  prepareOutputFile() {
     this.output = path.join(
       path.dirname(this.filepath),
       `${this.filename}T_Compiled.xml`
     )
-
     fs.writeFileSync(this.output, "", "utf8")
   }
 
@@ -115,6 +113,7 @@ class Tokenizer {
   }
 
   writeToXml(tokenType, token) {
+    if (this.writelock) return
     switch (tokenType) {
       case "xmlStart":
         return fs.appendFileSync(this.output, "<tokens>" + "\n", "utf-8")
@@ -242,6 +241,8 @@ class Tokenizer {
     }
   }
   tokenize() {
+    this.prepareOutputFile()
+    this.writelock = false
     this.writeToXml("xmlStart")
     while (this.hasMoreTokens()) this.advance()
     this.writeToXml("xmlEnd")
