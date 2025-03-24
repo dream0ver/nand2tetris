@@ -72,6 +72,7 @@ class Tokenizer {
     this.filepath = filepath
     this.filename = path.parse(filepath).name
     this.processFiles()
+    this.resetCurrentToken()
   }
 
   reset() {
@@ -187,8 +188,9 @@ class Tokenizer {
 
   advance() {
     if (this.isWhiteSpace(this.input[this.fp])) {
-      this.fp++
-    } else if (this.input[this.fp] == "/" && this.input[this.fp + 1] == "/") {
+      while (this.isWhiteSpace(this.input[this.fp])) this.fp++
+    }
+    if (this.input[this.fp] == "/" && this.input[this.fp + 1] == "/") {
       this.fp = this.fp + 2
       while (this.input[this.fp] != "\n") {
         this.fp++
@@ -236,8 +238,6 @@ class Tokenizer {
           this.current.type = this.allowed_tokens.IDENTIFIER
           this.writeToXml("identifier", this.current.token)
         }
-      } else {
-        this.fp++
       }
     }
   }
