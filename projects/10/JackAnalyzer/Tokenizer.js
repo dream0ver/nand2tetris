@@ -249,6 +249,6 @@ class Tokenizer {
   }
 }
 
-new Tokenizer(process.argv.slice(-1)[0]).tokenize()
+if (require.main == module) new Tokenizer(process.argv.slice(-1)[0]).tokenize()
 
 module.exports = { Tokenizer }
