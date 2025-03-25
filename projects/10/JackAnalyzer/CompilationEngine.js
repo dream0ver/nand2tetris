@@ -1,7 +1,6 @@
 const fs = require("fs")
 const path = require("path")
 const Tokenizer = require("./Tokenizer").Tokenizer
-const PRIMITIVES = ["int", "char", "boolean", "void"]
 
 class CompilationEngine {
   filepath = ""
@@ -49,6 +48,13 @@ class CompilationEngine {
     this.writeXML("class", this.compileClass())
   }
 
+  getTypeTag() {
+    const primitives = ["int", "char", "boolean", "void"]
+    return primitives.includes(this.getCurrentToken())
+      ? "keyword"
+      : "identifier"
+  }
+
   appendAdvance(str, tagName, customValue = null) {
     str += this.getXML(tagName, customValue ?? this.getCurrentToken())
     if (customValue == null) this.advanceToken()
@@ -74,10 +80,7 @@ class CompilationEngine {
 
     while (validPrefix.includes(this.getCurrentToken())) {
       str = this.appendAdvance(str, "keyword")
-      str = this.appendAdvance(
-        str,
-        PRIMITIVES.includes(this.getCurrentToken()) ? "keyword" : "identifier"
-      )
+      str = this.appendAdvance(str, this.getTypeTag())
       str = this.appendAdvance(str, "identifier")
 
       while (this.getCurrentToken() != ";") {
@@ -97,10 +100,7 @@ class CompilationEngine {
 
     while (validPrefix.includes(this.getCurrentToken())) {
       str = this.appendAdvance(str, "keyword")
-      str = this.appendAdvance(
-        str,
-        PRIMITIVES.includes(this.getCurrentToken()) ? "keyword" : "identifier"
-      )
+      str = this.appendAdvance(str, this.getTypeTag())
       str = this.appendAdvance(str, "identifier")
       str = this.appendAdvance(str, "symbol")
       str = this.appendAdvance(
@@ -124,12 +124,7 @@ class CompilationEngine {
 
     while (this.getCurrentToken() != ")") {
       if (str != "\n") str = this.appendAdvance(str, "symbol")
-
-      str = this.appendAdvance(
-        str,
-        PRIMITIVES.includes(this.getCurrentToken()) ? "keyword" : "identifier"
-      )
-
+      str = this.appendAdvance(str, this.getTypeTag())
       str = this.appendAdvance(str, "identifier")
     }
 
@@ -153,18 +148,12 @@ class CompilationEngine {
 
     while (validPrefix.includes(this.getCurrentToken())) {
       str = this.appendAdvance(str, "keyword")
-      str = this.appendAdvance(
-        str,
-        PRIMITIVES.includes(this.getCurrentToken()) ? "keyword" : "identifier"
-      )
+      str = this.appendAdvance(str, this.getTypeTag())
       str = this.appendAdvance(str, "identifier")
 
       while (this.getCurrentToken() != ";") {
         str = this.appendAdvance(str, "symbol")
-        str = this.appendAdvance(
-          str,
-          PRIMITIVES.includes(this.getCurrentToken()) ? "keyword" : "identifier"
-        )
+        str = this.appendAdvance(str, this.getTypeTag())
       }
 
       str = this.appendAdvance(str, "symbol")
