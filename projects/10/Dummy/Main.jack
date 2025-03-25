@@ -1,4 +1,9 @@
 class Main {
    field char hello, world;
    static int age, weight;
+
+   function List display (int lauda,char baigan,boolean paakit) {
+      var int a,b;
+      var char c;
+   }
 }

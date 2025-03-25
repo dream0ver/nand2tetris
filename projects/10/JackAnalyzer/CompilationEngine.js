@@ -1,6 +1,7 @@
 const fs = require("fs")
 const path = require("path")
 const Tokenizer = require("./Tokenizer").Tokenizer
+const PRIMITIVES = ["int", "char", "boolean", "void"]
 
 class CompilationEngine {
   filepath = ""
@@ -48,24 +49,21 @@ class CompilationEngine {
     this.writeXML("class", this.compileClass())
   }
 
+  appendAdvance(str, tagName, customValue = null) {
+    str += this.getXML(tagName, customValue ?? this.getCurrentToken())
+    if (customValue == null) this.advanceToken()
+    return str
+  }
+
   compileClass() {
     let str = "\n"
 
-    str = str + this.getXML("keyword", this.getCurrentToken())
-    this.advanceToken()
-
-    str = str + this.getXML("identifier", this.getCurrentToken())
-    this.advanceToken()
-
-    str = str + this.getXML("symbol", this.getCurrentToken())
-    this.advanceToken()
-
-    str = str + this.getXML("classVarDec", this.compileClassVarDec())
-
-    str = str + this.getXML("subroutineDec", this.compileSubroutine())
-
-    str = str + this.getXML("symbol", this.getCurrentToken())
-    this.advanceToken()
+    str = this.appendAdvance(str, "keyword")
+    str = this.appendAdvance(str, "identifier")
+    str = this.appendAdvance(str, "symbol")
+    str = this.appendAdvance(str, "classVarDec", this.compileClassVarDec())
+    str = this.appendAdvance(str, "subroutineDec", this.compileSubroutine())
+    str = this.appendAdvance(str, "symbol")
 
     return str
   }
@@ -73,26 +71,23 @@ class CompilationEngine {
   compileClassVarDec() {
     let str = "\n"
     let validPrefix = ["static", "field"]
+
     while (validPrefix.includes(this.getCurrentToken())) {
-      str = str + this.getXML("keyword", this.getCurrentToken())
-      this.advanceToken()
+      str = this.appendAdvance(str, "keyword")
 
-      str = str + this.getXML("keyword", this.getCurrentToken())
-      this.advanceToken()
+      str = this.appendAdvance(
+        str,
+        PRIMITIVES.includes(this.getCurrentToken()) ? "keyword" : "identifier"
+      )
 
-      str = str + this.getXML("identifier", this.getCurrentToken())
-      this.advanceToken()
+      str = this.appendAdvance(str, "identifier")
 
       while (this.getCurrentToken() != ";") {
-        str = str + this.getXML("symbol", this.getCurrentToken())
-        this.advanceToken()
-
-        str = str + this.getXML("identifier", this.getCurrentToken())
-        this.advanceToken()
+        str = this.appendAdvance(str, "symbol")
+        str = this.appendAdvance(str, "identifier")
       }
 
-      str = str + this.getXML("symbol", this.getCurrentToken())
-      this.advanceToken()
+      str = this.appendAdvance(str, "symbol")
     }
 
     return str
@@ -101,27 +96,109 @@ class CompilationEngine {
   compileSubroutine() {
     let str = "\n"
     let validPrefix = ["constructor", "function", "method"]
-    if (validPrefix.includes(this.getCurrentToken())) {
+
+    while (validPrefix.includes(this.getCurrentToken())) {
+      str = this.appendAdvance(str, "keyword")
+
+      str = this.appendAdvance(
+        str,
+        PRIMITIVES.includes(this.getCurrentToken()) ? "keyword" : "identifier"
+      )
+
+      str = this.appendAdvance(str, "identifier")
+
+      str = this.appendAdvance(str, "symbol")
+
+      str = this.appendAdvance(
+        str,
+        "parameterList",
+        this.compileParameterList()
+      )
+
+      str = this.appendAdvance(str, "symbol")
+
+      str = this.appendAdvance(
+        str,
+        "subroutineBody",
+        this.compileSubroutineBody()
+      )
     }
 
     return str
   }
 
-  compileParameterList() {}
+  compileParameterList() {
+    let str = "\n"
 
-  compileVarDec() {}
+    while (this.getCurrentToken() != ")") {
+      if (str != "\n") str = this.appendAdvance(str, "symbol")
 
-  compileStatements() {}
+      str = this.appendAdvance(
+        str,
+        PRIMITIVES.includes(this.getCurrentToken()) ? "keyword" : "identifier"
+      )
 
-  compileDo() {}
+      str = this.appendAdvance(str, "identifier")
+    }
+
+    return str
+  }
+
+  compileSubroutineBody() {
+    let str = "\n"
+
+    str = this.appendAdvance(str, "symbol")
+    str = this.appendAdvance(str, "varDec", this.compileVarDec())
+    str = this.appendAdvance(str, "statements", this.compileStatements())
+    str = this.appendAdvance(str, "symbol")
+
+    return str
+  }
+
+  compileVarDec() {
+    let str = "\n"
+    let validPrefix = ["var"]
+
+    while (validPrefix.includes(this.getCurrentToken())) {
+      str = this.appendAdvance(str, "keyword")
+
+      str = this.appendAdvance(
+        str,
+        PRIMITIVES.includes(this.getCurrentToken()) ? "keyword" : "identifier"
+      )
+
+      str = this.appendAdvance(str, "identifier")
+
+      while (this.getCurrentToken() != ";") {
+        str = this.appendAdvance(str, "symbol")
+
+        str = this.appendAdvance(
+          str,
+          PRIMITIVES.includes(this.getCurrentToken()) ? "keyword" : "identifier"
+        )
+      }
+
+      str = this.appendAdvance(str, "symbol")
+    }
+
+    return str
+  }
+
+  compileStatements() {
+    let str = "\n"
+
+    return str
+  }
 
   compileLet() {}
 
+  compileIf() {}
+  
   compileWhile() {}
+  
+  compileDo() {}
 
   compileReturn() {}
-
-  compileIf() {}
 
   compileExpression() {}
 

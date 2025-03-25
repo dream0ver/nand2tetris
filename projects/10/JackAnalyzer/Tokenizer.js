@@ -3,17 +3,11 @@ const path = require("path")
 
 class Tokenizer {
   filepath = ""
-
   filename = ""
-
   fp = 0
-
   input = ""
-
   output = ""
-
   current = ""
-
   writelock = true
 
   allowed_tokens = {
