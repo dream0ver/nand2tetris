@@ -74,12 +74,10 @@ class CompilationEngine {
 
     while (validPrefix.includes(this.getCurrentToken())) {
       str = this.appendAdvance(str, "keyword")
-
       str = this.appendAdvance(
         str,
         PRIMITIVES.includes(this.getCurrentToken()) ? "keyword" : "identifier"
       )
-
       str = this.appendAdvance(str, "identifier")
 
       while (this.getCurrentToken() != ";") {
@@ -99,24 +97,18 @@ class CompilationEngine {
 
     while (validPrefix.includes(this.getCurrentToken())) {
       str = this.appendAdvance(str, "keyword")
-
       str = this.appendAdvance(
         str,
         PRIMITIVES.includes(this.getCurrentToken()) ? "keyword" : "identifier"
       )
-
       str = this.appendAdvance(str, "identifier")
-
       str = this.appendAdvance(str, "symbol")
-
       str = this.appendAdvance(
         str,
         "parameterList",
         this.compileParameterList()
       )
-
       str = this.appendAdvance(str, "symbol")
-
       str = this.appendAdvance(
         str,
         "subroutineBody",
@@ -161,17 +153,14 @@ class CompilationEngine {
 
     while (validPrefix.includes(this.getCurrentToken())) {
       str = this.appendAdvance(str, "keyword")
-
       str = this.appendAdvance(
         str,
         PRIMITIVES.includes(this.getCurrentToken()) ? "keyword" : "identifier"
       )
-
       str = this.appendAdvance(str, "identifier")
 
       while (this.getCurrentToken() != ";") {
         str = this.appendAdvance(str, "symbol")
-
         str = this.appendAdvance(
           str,
           PRIMITIVES.includes(this.getCurrentToken()) ? "keyword" : "identifier"
@@ -193,9 +182,9 @@ class CompilationEngine {
   compileLet() {}
 
   compileIf() {}
-  
+
   compileWhile() {}
-  
+
   compileDo() {}
 
   compileReturn() {}
@@ -206,5 +195,8 @@ class CompilationEngine {
 
   compileExpressionList() {}
 }
+
+if (require.main == module)
+  new CompilationEngine(process.argv.slice(-1)[0]).compile()
 
 module.exports = { CompilationEngine }
