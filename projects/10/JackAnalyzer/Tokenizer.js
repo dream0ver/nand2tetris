@@ -8,6 +8,7 @@ class Tokenizer {
   input = ""
   output = ""
   current = ""
+  lookaheadtoken = ""
   writelock = true
 
   allowed_tokens = {
@@ -177,6 +178,21 @@ class Tokenizer {
     return this.current.type == this.allowed_keywords.INT_CONST
       ? this.current.token
       : null
+  }
+
+  getLookAhead() {
+    let fp_bak, current_bak
+
+    fp_bak = this.fp
+    current_bak = JSON.parse(JSON.stringify(this.current))
+
+    this.advance()
+
+    this.lookaheadtoken = JSON.parse(JSON.stringify(this.current))
+    this.fp = fp_bak
+    this.current = JSON.parse(JSON.stringify(current_bak))
+
+    return this.lookaheadtoken
   }
 
   advance() {

@@ -1,6 +1,5 @@
 class Main {
    function List display () {
-      var int a;
-      let a = 26;
+      let num = arr[1];
    }
 }

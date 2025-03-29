@@ -47,6 +47,10 @@ class CompilationEngine {
     return this.tokenizer.current.token
   }
 
+  getCurrentTokenType() {
+    return this.tokenizer.current.type
+  }
+
   compile() {
     this.advanceToken()
     this.writeXML("class", this.compileClass())
@@ -222,11 +226,11 @@ class CompilationEngine {
   compileExpression() {
     let str = "\n"
 
-    const operators = ["+", "-", "*", "/", "&", "|", "<", ">", "="]
+    const op = ["+", "-", "*", "/", "&", "|", "<", ">", "="]
 
     str = this.appendAdvance(str, "term", this.compileTerm())
 
-    while (operators.includes(this.getCurrentToken())) {
+    while (op.includes(this.getCurrentToken())) {
       str = this.appendAdvance(str, "symbol")
       str = this.appendAdvance(str, "term", this.compileTerm())
     }
@@ -234,17 +238,108 @@ class CompilationEngine {
     return str
   }
 
+  compileSubroutineCall() {
+    let str = "\n"
+    let isMethod = this.tokenizer.getLookAhead().token == "."
+
+    str = this.appendAdvance(str, "identifier")
+
+    if (isMethod) {
+      str = this.appendAdvance(str, "symbol")
+      str = this.appendAdvance(str, "identifier")
+    }
+
+    str = this.appendAdvance(str, "symbol")
+    str = this.appendAdvance(
+      str,
+      "expressionList",
+      this.compileExpressionList()
+    )
+    str = this.appendAdvance(str, "symbol")
+
+    return str
+  }
+
   compileTerm() {
     let str = "\n"
 
-    if (this.isNumber(this.getCurrentToken())) {
-      str = this.appendAdvance(str, "integerConstant")
+    switch (this.getCurrentTokenType()) {
+      case "integerConstant": {
+        str = this.appendAdvance(str, "integerConstant")
+        break
+      }
+
+      case "stringConstant": {
+        str = this.appendAdvance(str, "stringConstant")
+        break
+      }
+
+      case "keyword": {
+        str = this.appendAdvance(str, "keywordConstant")
+        break
+      }
+
+      case "identifier": {
+        switch (this.tokenizer.getLookAhead().token) {
+          case "[": {
+            str = this.appendAdvance(str, "identifier")
+            str = this.appendAdvance(str, "symbol")
+            str = this.appendAdvance(
+              str,
+              "expression",
+              this.compileExpression()
+            )
+            str = this.appendAdvance(str, "symbol")
+            break
+          }
+
+          case "(":
+          case ".": {
+            str = this.appendAdvance(
+              str,
+              "subroutineCall",
+              this.compileSubroutineCall()
+            )
+            break
+          }
+
+          default: {
+            str = this.appendAdvance(str, "identifier")
+          }
+        }
+
+        break
+      }
+
+      case "symbol": {
+        if (this.getCurrentToken() == "(") {
+          str = this.appendAdvance(str, "symbol")
+          str = this.appendAdvance(str, "expression", this.compileExpression())
+          str = this.appendAdvance(str, "symbol")
+        }
+        if (["-", "~"].includes(this.getCurrentToken())) {
+          str = this.appendAdvance(str, "symbol")
+          str = this.appendAdvance(str, "term", this.compileTerm())
+        }
+        break
+      }
     }
 
     return str
   }
 
-  compileExpressionList() {}
+  compileExpressionList() {
+    let str = "\n"
+
+    str = this.appendAdvance(str, "expression", this.compileExpression())
+
+    while (this.getCurrentToken() == ",") {
+      str = this.appendAdvance(str, "symbol")
+      str = this.appendAdvance(str, "expression", this.compileExpression())
+    }
+
+    return str
+  }
 }
 
 if (require.main == module)
