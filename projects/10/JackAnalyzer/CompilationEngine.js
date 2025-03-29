@@ -63,9 +63,9 @@ class CompilationEngine {
       : "identifier"
   }
 
-  appendAdvance(str, tagName, customValue = null) {
+  appendAdvance(str, tagName, customValue = null, forceAdvance = false) {
     str += this.getXML(tagName, customValue ?? this.getCurrentToken())
-    if (customValue == null) this.advanceToken()
+    if (customValue == null || forceAdvance) this.advanceToken()
     return str
   }
 
@@ -176,27 +176,25 @@ class CompilationEngine {
     while (this.getCurrentToken() != "}") {
       switch (this.getCurrentToken()) {
         case "let": {
-          while (this.getCurrentToken() == "let") {
-            str = this.appendAdvance(str, "letStatement", this.compileLet())
-          }
+          str = this.appendAdvance(str, "letStatement", this.compileLet())
           break
         }
-        // case "if": {
-        //   str = this.appendAdvance(str, "ifStatement", this.compileIf())
-        //   break
-        // }
-        // case "while": {
-        //   str = this.appendAdvance(str, "whileStatement", this.compileWhile())
-        //   break
-        // }
-        // case "do": {
-        //   str = this.appendAdvance(str, "doStatement", this.compileDo())
-        //   break
-        // }
-        // case "return": {
-        //   str = this.appendAdvance(str, "returnStatement", this.compileReturn())
-        //   break
-        // }
+        case "if": {
+          str = this.appendAdvance(str, "ifStatement", this.compileIf())
+          break
+        }
+        case "while": {
+          str = this.appendAdvance(str, "whileStatement", this.compileWhile())
+          break
+        }
+        case "do": {
+          str = this.appendAdvance(str, "doStatement", this.compileDo())
+          break
+        }
+        case "return": {
+          str = this.appendAdvance(str, "returnStatement", this.compileReturn())
+          break
+        }
       }
     }
 
@@ -208,7 +206,7 @@ class CompilationEngine {
 
     str = this.appendAdvance(str, "keyword")
 
-    if ((this.tokenizer.getLookAhead().token = "[")) {
+    if (this.tokenizer.getLookAhead().token == "[") {
       str = this.appendAdvance(str, "identifier")
       str = this.appendAdvance(str, "symbol")
       str = this.appendAdvance(str, "expression", this.compileExpression())
@@ -224,13 +222,86 @@ class CompilationEngine {
     return str
   }
 
-  compileIf() {}
+  compileIf() {
+    let str = "\n"
 
-  compileWhile() {}
+    str = this.appendAdvance(str, "keyword")
+    str = this.appendAdvance(str, "symbol")
+    str = this.appendAdvance(str, "expression", this.compileExpression())
+    str = this.appendAdvance(str, "symbol")
+    str = this.appendAdvance(str, "symbol")
+    str = this.appendAdvance(str, "statements", this.compileStatements())
+    str = this.appendAdvance(str, "symbol")
 
-  compileDo() {}
+    if (this.getCurrentToken() == "else") {
+      str = this.appendAdvance(str, "keyword")
+      str = this.appendAdvance(str, "symbol")
+      str = this.appendAdvance(str, "statements", this.compileStatements())
+      str = this.appendAdvance(str, "symbol")
+    }
 
-  compileReturn() {}
+    return str
+  }
+
+  compileWhile() {
+    let str = "\n"
+
+    str = this.appendAdvance(str, "keyword")
+
+    str = this.appendAdvance(str, "symbol")
+
+    str = this.appendAdvance(str, "expression", this.compileExpression())
+
+    str = this.appendAdvance(str, "symbol")
+
+    str = this.appendAdvance(str, "symbol")
+
+    str = this.appendAdvance(str, "statements", this.compileStatements())
+
+    str = this.appendAdvance(str, "symbol")
+
+    return str
+  }
+
+  compileDo() {
+    let str = "\n"
+
+    str = this.appendAdvance(str, "keyword")
+
+    str = str + this.compileSubroutineCall()
+
+    str = this.appendAdvance(str, "symbol")
+
+    return str
+  }
+
+  compileReturn() {
+    let str = "\n"
+
+    str = this.appendAdvance(str, "keyword")
+
+    if (this.getCurrentToken() != ";") {
+      str = this.appendAdvance(str, "expression", this.compileExpression())
+    }
+    str = this.appendAdvance(str, "symbol")
+
+    return str
+  }
+
+  getXmlSymbol(symbol) {
+    switch (symbol) {
+      case "<":
+        return "&lt;"
+      case ">":
+        return "&gt;"
+      case "&":
+        return "&amp;"
+      case '"':
+        return "&quot;"
+      default:
+        return symbol
+    }
+  }
 
   compileExpression() {
     let str = "\n"
@@ -240,7 +311,12 @@ class CompilationEngine {
     str = this.appendAdvance(str, "term", this.compileTerm())
 
     while (op.includes(this.getCurrentToken())) {
-      str = this.appendAdvance(str, "symbol")
+      str = this.appendAdvance(
+        str,
+        "symbol",
+        this.getXmlSymbol(this.getCurrentToken()),
+        true
+      )
       str = this.appendAdvance(str, "term", this.compileTerm())
     }
 
@@ -248,7 +324,7 @@ class CompilationEngine {
   }
 
   compileSubroutineCall() {
-    let str = "\n"
+    let str = ""
     let isMethod = this.tokenizer.getLookAhead().token == "."
 
     str = this.appendAdvance(str, "identifier")
@@ -284,7 +360,7 @@ class CompilationEngine {
       }
 
       case "keyword": {
-        str = this.appendAdvance(str, "keywordConstant")
+        str = this.appendAdvance(str, "keyword")
         break
       }
 
@@ -304,11 +380,7 @@ class CompilationEngine {
 
           case "(":
           case ".": {
-            str = this.appendAdvance(
-              str,
-              "subroutineCall",
-              this.compileSubroutineCall()
-            )
+            str = str + this.compileSubroutineCall()
             break
           }
 
@@ -340,7 +412,9 @@ class CompilationEngine {
   compileExpressionList() {
     let str = "\n"
 
-    str = this.appendAdvance(str, "expression", this.compileExpression())
+    if (this.getCurrentToken() != ")") {
+      str = this.appendAdvance(str, "expression", this.compileExpression())
+    }
 
     while (this.getCurrentToken() == ",") {
       str = this.appendAdvance(str, "symbol")
