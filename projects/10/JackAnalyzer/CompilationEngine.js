@@ -207,7 +207,16 @@ class CompilationEngine {
     let str = "\n"
 
     str = this.appendAdvance(str, "keyword")
-    str = this.appendAdvance(str, "identifier")
+
+    if ((this.tokenizer.getLookAhead().token = "[")) {
+      str = this.appendAdvance(str, "identifier")
+      str = this.appendAdvance(str, "symbol")
+      str = this.appendAdvance(str, "expression", this.compileExpression())
+      str = this.appendAdvance(str, "symbol")
+    } else {
+      str = this.appendAdvance(str, "identifier")
+    }
+
     str = this.appendAdvance(str, "symbol")
     str = this.appendAdvance(str, "expression", this.compileExpression())
     str = this.appendAdvance(str, "symbol")
