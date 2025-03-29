@@ -1,5 +1,0 @@
-class Main {
-   function List display () {
-      let num = arr[1];
-   }
-}
