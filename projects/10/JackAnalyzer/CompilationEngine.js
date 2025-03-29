@@ -23,6 +23,10 @@ class CompilationEngine {
     fs.writeFileSync(this.output, "", "utf8")
   }
 
+  isNumber(symbol) {
+    return !isNaN(Number(symbol))
+  }
+
   getXML(tagName, tagValue) {
     return `<${tagName}>` + `${tagValue}` + `</${tagName}>` + "\n"
   }
@@ -63,12 +67,21 @@ class CompilationEngine {
 
   compileClass() {
     let str = "\n"
+    let validClassVarPrefix = ["static", "field"]
+    let validSubroutinePrefix = ["constructor", "function", "method"]
 
     str = this.appendAdvance(str, "keyword")
     str = this.appendAdvance(str, "identifier")
     str = this.appendAdvance(str, "symbol")
-    str = this.appendAdvance(str, "classVarDec", this.compileClassVarDec())
-    str = this.appendAdvance(str, "subroutineDec", this.compileSubroutine())
+
+    while (validClassVarPrefix.includes(this.getCurrentToken())) {
+      str = this.appendAdvance(str, "classVarDec", this.compileClassVarDec())
+    }
+
+    while (validSubroutinePrefix.includes(this.getCurrentToken())) {
+      str = this.appendAdvance(str, "subroutineDec", this.compileSubroutine())
+    }
+
     str = this.appendAdvance(str, "symbol")
 
     return str
@@ -76,45 +89,35 @@ class CompilationEngine {
 
   compileClassVarDec() {
     let str = "\n"
-    let validPrefix = ["static", "field"]
 
-    while (validPrefix.includes(this.getCurrentToken())) {
-      str = this.appendAdvance(str, "keyword")
-      str = this.appendAdvance(str, this.getTypeTag())
-      str = this.appendAdvance(str, "identifier")
+    str = this.appendAdvance(str, "keyword")
+    str = this.appendAdvance(str, this.getTypeTag())
+    str = this.appendAdvance(str, "identifier")
 
-      while (this.getCurrentToken() != ";") {
-        str = this.appendAdvance(str, "symbol")
-        str = this.appendAdvance(str, "identifier")
-      }
-
+    while (this.getCurrentToken() != ";") {
       str = this.appendAdvance(str, "symbol")
+      str = this.appendAdvance(str, "identifier")
     }
+
+    str = this.appendAdvance(str, "symbol")
 
     return str
   }
 
   compileSubroutine() {
     let str = "\n"
-    let validPrefix = ["constructor", "function", "method"]
 
-    while (validPrefix.includes(this.getCurrentToken())) {
-      str = this.appendAdvance(str, "keyword")
-      str = this.appendAdvance(str, this.getTypeTag())
-      str = this.appendAdvance(str, "identifier")
-      str = this.appendAdvance(str, "symbol")
-      str = this.appendAdvance(
-        str,
-        "parameterList",
-        this.compileParameterList()
-      )
-      str = this.appendAdvance(str, "symbol")
-      str = this.appendAdvance(
-        str,
-        "subroutineBody",
-        this.compileSubroutineBody()
-      )
-    }
+    str = this.appendAdvance(str, "keyword")
+    str = this.appendAdvance(str, this.getTypeTag())
+    str = this.appendAdvance(str, "identifier")
+    str = this.appendAdvance(str, "symbol")
+    str = this.appendAdvance(str, "parameterList", this.compileParameterList())
+    str = this.appendAdvance(str, "symbol")
+    str = this.appendAdvance(
+      str,
+      "subroutineBody",
+      this.compileSubroutineBody()
+    )
 
     return str
   }
@@ -135,7 +138,11 @@ class CompilationEngine {
     let str = "\n"
 
     str = this.appendAdvance(str, "symbol")
-    str = this.appendAdvance(str, "varDec", this.compileVarDec())
+
+    while (this.getCurrentToken() == "var") {
+      str = this.appendAdvance(str, "varDec", this.compileVarDec())
+    }
+
     str = this.appendAdvance(str, "statements", this.compileStatements())
     str = this.appendAdvance(str, "symbol")
 
@@ -144,20 +151,17 @@ class CompilationEngine {
 
   compileVarDec() {
     let str = "\n"
-    let validPrefix = ["var"]
 
-    while (validPrefix.includes(this.getCurrentToken())) {
-      str = this.appendAdvance(str, "keyword")
-      str = this.appendAdvance(str, this.getTypeTag())
-      str = this.appendAdvance(str, "identifier")
+    str = this.appendAdvance(str, "keyword")
+    str = this.appendAdvance(str, this.getTypeTag())
+    str = this.appendAdvance(str, "identifier")
 
-      while (this.getCurrentToken() != ";") {
-        str = this.appendAdvance(str, "symbol")
-        str = this.appendAdvance(str, this.getTypeTag())
-      }
-
+    while (this.getCurrentToken() != ";") {
       str = this.appendAdvance(str, "symbol")
+      str = this.appendAdvance(str, this.getTypeTag())
     }
+
+    str = this.appendAdvance(str, "symbol")
 
     return str
   }
@@ -165,10 +169,47 @@ class CompilationEngine {
   compileStatements() {
     let str = "\n"
 
+    while (this.getCurrentToken() != "}") {
+      switch (this.getCurrentToken()) {
+        case "let": {
+          while (this.getCurrentToken() == "let") {
+            str = this.appendAdvance(str, "letStatement", this.compileLet())
+          }
+          break
+        }
+        // case "if": {
+        //   str = this.appendAdvance(str, "ifStatement", this.compileIf())
+        //   break
+        // }
+        // case "while": {
+        //   str = this.appendAdvance(str, "whileStatement", this.compileWhile())
+        //   break
+        // }
+        // case "do": {
+        //   str = this.appendAdvance(str, "doStatement", this.compileDo())
+        //   break
+        // }
+        // case "return": {
+        //   str = this.appendAdvance(str, "returnStatement", this.compileReturn())
+        //   break
+        // }
+      }
+    }
+
     return str
   }
 
-  compileLet() {}
+  compileLet() {
+    let str = "\n"
+
+    str = this.appendAdvance(str, "keyword")
+    str = this.appendAdvance(str, "identifier")
+    str = this.appendAdvance(str, "symbol")
+    str = this.appendAdvance(str, "expression", this.compileExpression())
+    str = this.appendAdvance(str, "symbol")
+
+    return str
+  }
 
   compileIf() {}
 
@@ -178,9 +219,30 @@ class CompilationEngine {
 
   compileReturn() {}
 
-  compileExpression() {}
+  compileExpression() {
+    let str = "\n"
 
-  compileTerm() {}
+    const operators = ["+", "-", "*", "/", "&", "|", "<", ">", "="]
+
+    str = this.appendAdvance(str, "term", this.compileTerm())
+
+    while (operators.includes(this.getCurrentToken())) {
+      str = this.appendAdvance(str, "symbol")
+      str = this.appendAdvance(str, "term", this.compileTerm())
+    }
+
+    return str
+  }
+
+  compileTerm() {
+    let str = "\n"
+
+    if (this.isNumber(this.getCurrentToken())) {
+      str = this.appendAdvance(str, "integerConstant")
+    }
+
+    return str
+  }
 
   compileExpressionList() {}
 }
