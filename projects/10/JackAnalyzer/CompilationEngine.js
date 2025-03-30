@@ -247,17 +247,11 @@ class CompilationEngine {
     let str = "\n"
 
     str = this.appendAdvance(str, "keyword")
-
     str = this.appendAdvance(str, "symbol")
-
     str = this.appendAdvance(str, "expression", this.compileExpression())
-
     str = this.appendAdvance(str, "symbol")
-
     str = this.appendAdvance(str, "symbol")
-
     str = this.appendAdvance(str, "statements", this.compileStatements())
-
     str = this.appendAdvance(str, "symbol")
 
     return str
@@ -267,9 +261,7 @@ class CompilationEngine {
     let str = "\n"
 
     str = this.appendAdvance(str, "keyword")
-
     str = str + this.compileSubroutineCall()
-
     str = this.appendAdvance(str, "symbol")
 
     return str
@@ -283,6 +275,7 @@ class CompilationEngine {
     if (this.getCurrentToken() != ";") {
       str = this.appendAdvance(str, "expression", this.compileExpression())
     }
+    
     str = this.appendAdvance(str, "symbol")
 
     return str
@@ -397,8 +390,7 @@ class CompilationEngine {
           str = this.appendAdvance(str, "symbol")
           str = this.appendAdvance(str, "expression", this.compileExpression())
           str = this.appendAdvance(str, "symbol")
-        }
-        if (["-", "~"].includes(this.getCurrentToken())) {
+        } else if (["-", "~"].includes(this.getCurrentToken())) {
           str = this.appendAdvance(str, "symbol")
           str = this.appendAdvance(str, "term", this.compileTerm())
         }
