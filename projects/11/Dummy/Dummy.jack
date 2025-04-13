@@ -1,0 +1,13 @@
+class Dummy {
+    static int s_int_a,s_int_b,s_int_c ;
+    field char f_char_a;
+    field boolean f_boolean_a;
+    field int f_int_b;
+
+    method void super(int a, char b) {
+      var int i, sum;
+      var char gender;
+
+      let i = 2;
+   }
+}

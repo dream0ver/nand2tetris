@@ -1,42 +1,17 @@
-const fs = require("fs")
-const path = require("path")
 const Tokenizer = require("./Tokenizer").Tokenizer
+const VMWriter = require("./VMWriter").VMWriter
+const SymbolTable = require("./SymbolTable").SymbolTable
 
 class CompilationEngine {
-  filepath = ""
-  filename = ""
-  output = ""
-  tokenizer = null
-
+  CLASSNAME = ""
   constructor(filepath) {
-    this.filepath = filepath
-    this.filename = path.parse(filepath).name
-    this.tokenizer = new Tokenizer(this.filepath)
-    this.prepareOutputFile()
-  }
-
-  prepareOutputFile() {
-    this.output = path.join(
-      path.dirname(this.filepath),
-      `${this.filename}_Compiled.xml`
-    )
-    fs.writeFileSync(this.output, "", "utf8")
+    this.tokenizer = new Tokenizer(filepath)
+    this.vmwriter = new VMWriter(filepath)
+    this.symboltable = new SymbolTable()
   }
 
   isNumber(symbol) {
     return !isNaN(Number(symbol))
-  }
-
-  getXML(tagName, tagValue) {
-    return `<${tagName}>` + `${tagValue}` + `</${tagName}>` + "\n"
-  }
-
-  writeXML(tagName, tagValue) {
-    return fs.appendFileSync(
-      this.output,
-      this.getXML(tagName, tagValue),
-      "utf-8"
-    )
   }
 
   advanceToken() {
@@ -51,9 +26,15 @@ class CompilationEngine {
     return this.tokenizer.current.type
   }
 
+  printLogs() {
+    console.log("class name ", this.CLASSNAME)
+    console.log("class table ", this.symboltable.class_table)
+    console.log("subroutine table ", this.symboltable.subroutine_table)
+  }
+
   compile() {
-    this.advanceToken()
-    this.writeXML("class", this.compileClass())
+    this.compileClass()
+    this.printLogs()
   }
 
   getTypeTag() {
@@ -63,116 +44,130 @@ class CompilationEngine {
       : "identifier"
   }
 
-  appendAdvance(str, tagName, customValue = null, forceAdvance = false) {
-    str += this.getXML(tagName, customValue ?? this.getCurrentToken())
-    if (customValue == null || forceAdvance) this.advanceToken()
-    return str
-  }
-
   compileClass() {
-    let str = "\n"
     let validClassVarPrefix = ["static", "field"]
     let validSubroutinePrefix = ["constructor", "function", "method"]
 
-    str = this.appendAdvance(str, "keyword")
-    str = this.appendAdvance(str, "identifier")
-    str = this.appendAdvance(str, "symbol")
+    this.advanceToken() // class
+    this.advanceToken() // identifier
+    this.CLASSNAME = this.getCurrentToken()
+    this.advanceToken() // opening bracket
+    this.advanceToken()
 
-    while (validClassVarPrefix.includes(this.getCurrentToken())) {
-      str = this.appendAdvance(str, "classVarDec", this.compileClassVarDec())
-    }
+    while (validClassVarPrefix.includes(this.getCurrentToken()))
+      this.compileClassVarDec()
 
-    while (validSubroutinePrefix.includes(this.getCurrentToken())) {
-      str = this.appendAdvance(str, "subroutineDec", this.compileSubroutine())
-    }
+    while (validSubroutinePrefix.includes(this.getCurrentToken()))
+      this.compileSubroutine()
 
-    str = this.appendAdvance(str, "symbol")
-
-    return str
+    this.advanceToken() // closing bracket
   }
 
   compileClassVarDec() {
-    let str = "\n"
+    let kind, type, name
+    kind = this.getCurrentToken()
 
-    str = this.appendAdvance(str, "keyword")
-    str = this.appendAdvance(str, this.getTypeTag())
-    str = this.appendAdvance(str, "identifier")
+    this.advanceToken() // type
+    type = this.getCurrentToken()
+
+    this.advanceToken() // identifier
+    name = this.getCurrentToken()
+
+    this.symboltable.define(name, type, kind)
+
+    this.advanceToken() // symbol (, or ;)
 
     while (this.getCurrentToken() != ";") {
-      str = this.appendAdvance(str, "symbol")
-      str = this.appendAdvance(str, "identifier")
+      this.advanceToken() // identifier
+      name = this.getCurrentToken()
+      this.symboltable.define(name, type, kind)
+      this.advanceToken() // symbol (, or ;)
     }
 
-    str = this.appendAdvance(str, "symbol")
-
-    return str
+    this.advanceToken() // symbol (, or ;)
   }
 
   compileSubroutine() {
-    let str = "\n"
+    let type, returnType, name
 
-    str = this.appendAdvance(str, "keyword")
-    str = this.appendAdvance(str, this.getTypeTag())
-    str = this.appendAdvance(str, "identifier")
-    str = this.appendAdvance(str, "symbol")
-    str = this.appendAdvance(str, "parameterList", this.compileParameterList())
-    str = this.appendAdvance(str, "symbol")
-    str = this.appendAdvance(
-      str,
-      "subroutineBody",
-      this.compileSubroutineBody()
-    )
+    type = this.getCurrentToken()
 
-    return str
+    this.advanceToken() // return type
+
+    returnType = this.getCurrentToken()
+
+    this.advanceToken() // subroutine identifier
+
+    name = this.getCurrentToken()
+
+    this.symboltable.startSubroutine(name)
+
+    if (type == "method")
+      this.symboltable.define("this", this.CLASSNAME, "argument")
+
+    this.advanceToken() // symbol (
+
+    this.compileParameterList()
+
+    this.advanceToken() // )
+
+    this.compileSubroutineBody()
   }
 
   compileParameterList() {
-    let str = "\n"
+    let type, name
 
     while (this.getCurrentToken() != ")") {
-      if (str != "\n") str = this.appendAdvance(str, "symbol")
-      str = this.appendAdvance(str, this.getTypeTag())
-      str = this.appendAdvance(str, "identifier")
-    }
+      this.advanceToken() // type
 
-    return str
+      type = this.getCurrentToken()
+
+      this.advanceToken() // argument identifier
+
+      name = this.getCurrentToken()
+
+      this.symboltable.define(name, type, "argument")
+
+      this.advanceToken() // symbol , or )
+    }
   }
 
   compileSubroutineBody() {
-    let str = "\n"
+    this.advanceToken() // symbol {
 
-    str = this.appendAdvance(str, "symbol")
+    while (this.getCurrentToken() == "var") this.compileVarDec()
 
-    while (this.getCurrentToken() == "var") {
-      str = this.appendAdvance(str, "varDec", this.compileVarDec())
-    }
+    this.vmwriter.writeFunction(
+      `${this.CLASSNAME}.${this.symboltable.getSubroutineName()}`,
+      this.symboltable.varCount("local")
+    )
 
-    str = this.appendAdvance(str, "statements", this.compileStatements())
-    str = this.appendAdvance(str, "symbol")
+    this.compileStatements()
 
-    return str
+    this.advanceToken() // symbol }
   }
 
   compileVarDec() {
-    let str = "\n"
+    let type, name
 
-    str = this.appendAdvance(str, "keyword")
-    str = this.appendAdvance(str, this.getTypeTag())
-    str = this.appendAdvance(str, "identifier")
+    this.advanceToken()
+    type = this.getCurrentToken()
+    this.advanceToken()
+    name = this.getCurrentToken()
+    this.symboltable.define(name, type, "local")
+    this.advanceToken()
 
     while (this.getCurrentToken() != ";") {
-      str = this.appendAdvance(str, "symbol")
-      str = this.appendAdvance(str, this.getTypeTag())
+      this.advanceToken() // identifier
+      name = this.getCurrentToken()
+      this.symboltable.define(name, type, "local")
+      this.advanceToken() // symbol (, or ;)
     }
 
-    str = this.appendAdvance(str, "symbol")
-
-    return str
+    this.advanceToken() // symbol ;
   }
 
   compileStatements() {
-    let str = "\n"
-
     while (this.getCurrentToken() != "}") {
       switch (this.getCurrentToken()) {
         case "let": {
@@ -197,8 +192,6 @@ class CompilationEngine {
         }
       }
     }
-
-    return str
   }
 
   compileLet() {
@@ -275,7 +268,7 @@ class CompilationEngine {
     if (this.getCurrentToken() != ";") {
       str = this.appendAdvance(str, "expression", this.compileExpression())
     }
-    
+
     str = this.appendAdvance(str, "symbol")
 
     return str

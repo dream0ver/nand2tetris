@@ -2,14 +2,20 @@ class SymbolTable {
   constructor() {
     this.class_table = {}
     this.subroutine_table = {}
+    this.subroutine_name = ""
   }
 
-  startSubroutine() {
-    subroutine_table = {}
+  startSubroutine(name) {
+    this.subroutine_name = name
+    this.subroutine_table = {}
+  }
+
+  getSubroutineName() {
+    return this.subroutine_name
   }
 
   getTableByKind(kind) {
-    return ["STATIC", "FIELD"].includes(kind)
+    return ["static", "field"].includes(kind)
       ? this.class_table
       : this.subroutine_table
   }
@@ -53,3 +59,5 @@ class SymbolTable {
     return this.findIdentifier(name)?.index
   }
 }
+
+module.exports = { SymbolTable }
