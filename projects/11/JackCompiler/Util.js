@@ -1,5 +1,17 @@
 const VALID_OPERATORS = ["+", "-", "*", "/", "&", "|", "<", ">", "="]
 
+const OPERATOR_PRECEDENCE = {
+  "=": 1,
+  "|": 2,
+  "&": 3,
+  "<": 4,
+  ">": 4,
+  "+": 5,
+  "-": 5,
+  "*": 6,
+  "/": 6,
+}
+
 const VALID_SYMBOLS = [
   "{",
   "}",
@@ -59,4 +71,5 @@ module.exports = {
   VALID_SYMBOLS,
   VALID_KEYWORDS,
   VALID_TOKENS,
+  OPERATOR_PRECEDENCE,
 }

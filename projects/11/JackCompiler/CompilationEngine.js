@@ -1,7 +1,7 @@
 const Tokenizer = require("./Tokenizer").Tokenizer
 const VMWriter = require("./VMWriter").VMWriter
 const SymbolTable = require("./SymbolTable").SymbolTable
-const { VALID_OPERATORS } = require("./Util")
+const { VALID_OPERATORS, OPERATOR_PRECEDENCE } = require("./Util")
 
 class CompilationEngine {
   constructor(filepath) {
@@ -185,7 +185,30 @@ class CompilationEngine {
   }
 
   infixToPostfix(exp) {
-    return exp
+    const stack = []
+    let postfix = ""
+    for (const c of exp) {
+      if (c === "(") {
+        stack.push(c)
+      } else if (c === ")") {
+        while (stack.length && stack[stack.length - 1] !== "(")
+          postfix += stack.pop()
+        stack.pop()
+      } else if (VALID_OPERATORS.includes(c)) {
+        while (
+          stack.length &&
+          VALID_OPERATORS.includes(stack[stack.length - 1]) &&
+          OPERATOR_PRECEDENCE[stack[stack.length - 1]] >= OPERATOR_PRECEDENCE[c]
+        ) {
+          postfix += stack.pop()
+        }
+        stack.push(c)
+      } else {
+        postfix += c
+      }
+    }
+    while (stack.length) postfix += stack.pop()
+    return postfix
   }
 
   compileLet() {
@@ -198,8 +221,7 @@ class CompilationEngine {
 
       this.advanceToken() // [
 
-      let compiledExpression = this.compileExpression()
-      console.log(compiledExpression, this.infixToPostfix(compiledExpression))
+      this.compileExpression()
 
       this.advanceToken() // ]
     } else {
@@ -209,7 +231,10 @@ class CompilationEngine {
     this.advanceToken() // symbol =
 
     let compiledExpression = this.compileExpression()
-    console.log(compiledExpression, this.infixToPostfix(compiledExpression))
+    console.log({
+      infix: compiledExpression,
+      postfix: this.infixToPostfix(compiledExpression),
+    })
 
     this.advanceToken() // symbol ;
   }
