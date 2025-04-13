@@ -1,5 +1,6 @@
 const fs = require("fs")
 const path = require("path")
+const { VALID_SYMBOLS, VALID_KEYWORDS, VALID_TOKENS } = require("./Util")
 
 class Tokenizer {
   filepath = ""
@@ -10,60 +11,6 @@ class Tokenizer {
   current = ""
   lookaheadtoken = ""
   writelock = true
-
-  allowed_tokens = {
-    SYMBOL: "symbol",
-    IDENTIFIER: "identifier",
-    KEYWORD: "keyword",
-    STRING_CONST: "stringConstant",
-    INT_CONST: "integerConstant",
-  }
-
-  allowed_symbols = [
-    "{",
-    "}",
-    "(",
-    ")",
-    "[",
-    "]",
-    ".",
-    ",",
-    ";",
-    "+",
-    "-",
-    "*",
-    "/",
-    "&",
-    "|",
-    "<",
-    ">",
-    "=",
-    "~",
-  ]
-
-  allowed_keywords = [
-    "class",
-    "method",
-    "function",
-    "constructor",
-    "int",
-    "boolean",
-    "char",
-    "void",
-    "var",
-    "static",
-    "field",
-    "let",
-    "do",
-    "if",
-    "else",
-    "while",
-    "return",
-    "true",
-    "false",
-    "null",
-    "this",
-  ]
 
   constructor(filepath) {
     this.filepath = filepath
@@ -89,7 +36,7 @@ class Tokenizer {
   }
 
   isSymbol(symbol) {
-    return this.allowed_symbols.includes(symbol)
+    return VALID_SYMBOLS.includes(symbol)
   }
 
   isString(symbol) {
@@ -151,31 +98,27 @@ class Tokenizer {
   }
 
   getKeyword() {
-    return this.current.type == this.allowed_keywords.KEYWORD
-      ? this.current.token
-      : null
+    return this.current.type == VALID_TOKENS.KEYWORD ? this.current.token : null
   }
 
   getIdentifier() {
-    return this.current.type == this.allowed_keywords.IDENTIFIER
+    return this.current.type == VALID_TOKENS.IDENTIFIER
       ? this.current.token
       : null
   }
 
   getSymbol() {
-    return this.current.type == this.allowed_keywords.SYMBOL
-      ? this.current.token
-      : null
+    return this.current.type == VALID_TOKENS.SYMBOL ? this.current.token : null
   }
 
   getStringVal() {
-    return this.current.type == this.allowed_keywords.STRING_CONST
+    return this.current.type == VALID_TOKENS.STRING_CONST
       ? this.current.token
       : null
   }
 
   getIntVal() {
-    return this.current.type == this.allowed_keywords.INT_CONST
+    return this.current.type == VALID_TOKENS.INT_CONST
       ? this.current.token
       : null
   }
@@ -225,14 +168,14 @@ class Tokenizer {
     if (this.isSymbol(this.input[this.fp])) {
       this.writeToXml("symbol", this.getXmlSymbol(this.input[this.fp]))
       this.current.token = this.input[this.fp]
-      this.current.type = this.allowed_tokens.SYMBOL
+      this.current.type = VALID_TOKENS.SYMBOL
       this.fp++
     } else if (this.isNumber(this.input[this.fp])) {
       while (this.isNumber(this.input[this.fp])) {
         this.current.token = this.current.token + this.input[this.fp]
         this.fp++
       }
-      this.current.type = this.allowed_tokens.INT_CONST
+      this.current.type = VALID_TOKENS.INT_CONST
       this.writeToXml("integerConstant", this.current.token)
     } else if (this.isString(this.input[this.fp])) {
       this.fp++
@@ -240,7 +183,7 @@ class Tokenizer {
         this.current.token = this.current.token + this.input[this.fp]
         this.fp++
       }
-      this.current.type = this.allowed_tokens.STRING_CONST
+      this.current.type = VALID_TOKENS.STRING_CONST
       this.writeToXml("stringConstant", this.current.token)
       this.fp++
     } else if (this.isValidIdentifierChar(this.input[this.fp])) {
@@ -249,11 +192,11 @@ class Tokenizer {
         this.fp++
       }
 
-      if (this.allowed_keywords.includes(this.current.token)) {
-        this.current.type = this.allowed_tokens.KEYWORD
+      if (VALID_KEYWORDS.includes(this.current.token)) {
+        this.current.type = VALID_TOKENS.KEYWORD
         this.writeToXml("keyword", this.current.token)
       } else {
-        this.current.type = this.allowed_tokens.IDENTIFIER
+        this.current.type = VALID_TOKENS.IDENTIFIER
         this.writeToXml("identifier", this.current.token)
       }
     }

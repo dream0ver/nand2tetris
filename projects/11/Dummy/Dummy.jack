@@ -8,6 +8,6 @@ class Dummy {
       var int i, sum;
       var char gender;
 
-      let i = 2;
+      let i[2+3] = (2+3)*8;
    }
 }

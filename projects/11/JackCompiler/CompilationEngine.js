@@ -1,6 +1,7 @@
 const Tokenizer = require("./Tokenizer").Tokenizer
 const VMWriter = require("./VMWriter").VMWriter
 const SymbolTable = require("./SymbolTable").SymbolTable
+const { VALID_OPERATORS } = require("./Util")
 
 class CompilationEngine {
   constructor(filepath) {
@@ -30,7 +31,7 @@ class CompilationEngine {
 
   compile() {
     this.compileClass()
-    this.debug()
+    // this.debug()
   }
 
   compileClass() {
@@ -160,48 +161,57 @@ class CompilationEngine {
     while (this.getCurrentToken() != "}") {
       switch (this.getCurrentToken()) {
         case "let": {
-          str = this.appendAdvance(str, "letStatement", this.compileLet())
+          this.compileLet()
           break
         }
-        case "if": {
-          str = this.appendAdvance(str, "ifStatement", this.compileIf())
-          break
-        }
-        case "while": {
-          str = this.appendAdvance(str, "whileStatement", this.compileWhile())
-          break
-        }
-        case "do": {
-          str = this.appendAdvance(str, "doStatement", this.compileDo())
-          break
-        }
-        case "return": {
-          str = this.appendAdvance(str, "returnStatement", this.compileReturn())
-          break
-        }
+        // case "if": {
+        //   str = this.appendAdvance(str, "ifStatement", this.compileIf())
+        //   break
+        // }
+        // case "while": {
+        //   str = this.appendAdvance(str, "whileStatement", this.compileWhile())
+        //   break
+        // }
+        // case "do": {
+        //   str = this.appendAdvance(str, "doStatement", this.compileDo())
+        //   break
+        // }
+        // case "return": {
+        //   str = this.appendAdvance(str, "returnStatement", this.compileReturn())
+        //   break
+        // }
       }
     }
   }
 
-  compileLet() {
-    let str = "\n"
+  infixToPostfix(exp) {
+    return exp
+  }
 
-    str = this.appendAdvance(str, "keyword")
+  compileLet() {
+    let name
+    this.advanceToken() // keyword let
 
     if (this.tokenizer.getLookAhead().token == "[") {
-      str = this.appendAdvance(str, "identifier")
-      str = this.appendAdvance(str, "symbol")
-      str = this.appendAdvance(str, "expression", this.compileExpression())
-      str = this.appendAdvance(str, "symbol")
+      name = this.getCurrentToken()
+      this.advanceToken()
+
+      this.advanceToken() // [
+
+      let compiledExpression = this.compileExpression()
+      console.log(compiledExpression, this.infixToPostfix(compiledExpression))
+
+      this.advanceToken() // ]
     } else {
-      str = this.appendAdvance(str, "identifier")
+      name = this.getCurrentToken()
+      this.advanceToken() // identifier
     }
+    this.advanceToken() // symbol =
 
-    str = this.appendAdvance(str, "symbol")
-    str = this.appendAdvance(str, "expression", this.compileExpression())
-    str = this.appendAdvance(str, "symbol")
+    let compiledExpression = this.compileExpression()
+    console.log(compiledExpression, this.infixToPostfix(compiledExpression))
 
-    return str
+    this.advanceToken() // symbol ;
   }
 
   compileIf() {
@@ -264,18 +274,17 @@ class CompilationEngine {
   }
 
   compileExpression() {
-    let str = "\n"
+    let infix = ""
 
-    const op = ["+", "-", "*", "/", "&", "|", "<", ">", "="]
+    infix += this.compileTerm()
 
-    str = this.appendAdvance(str, "term", this.compileTerm())
-
-    while (op.includes(this.getCurrentToken())) {
-      str = this.appendAdvance(str, "symbol", this.getCurrentToken(), true)
-      str = this.appendAdvance(str, "term", this.compileTerm())
+    while (VALID_OPERATORS.includes(this.getCurrentToken())) {
+      infix += this.getCurrentToken()
+      this.advanceToken()
+      infix += this.compileTerm()
     }
 
-    return str
+    return infix
   }
 
   compileSubroutineCall() {
@@ -301,66 +310,68 @@ class CompilationEngine {
   }
 
   compileTerm() {
-    let str = "\n"
-
     switch (this.getCurrentTokenType()) {
       case "integerConstant": {
-        str = this.appendAdvance(str, "integerConstant")
-        break
-      }
-
-      case "stringConstant": {
-        str = this.appendAdvance(str, "stringConstant")
-        break
-      }
-
-      case "keyword": {
-        str = this.appendAdvance(str, "keyword")
-        break
-      }
-
-      case "identifier": {
-        switch (this.tokenizer.getLookAhead().token) {
-          case "[": {
-            str = this.appendAdvance(str, "identifier")
-            str = this.appendAdvance(str, "symbol")
-            str = this.appendAdvance(
-              str,
-              "expression",
-              this.compileExpression()
-            )
-            str = this.appendAdvance(str, "symbol")
-            break
-          }
-
-          case "(":
-          case ".": {
-            str = str + this.compileSubroutineCall()
-            break
-          }
-
-          default: {
-            str = this.appendAdvance(str, "identifier")
-          }
-        }
-
-        break
+        let term = this.getCurrentToken()
+        this.advanceToken()
+        return term
       }
 
       case "symbol": {
+        let term = ""
         if (this.getCurrentToken() == "(") {
-          str = this.appendAdvance(str, "symbol")
-          str = this.appendAdvance(str, "expression", this.compileExpression())
-          str = this.appendAdvance(str, "symbol")
+          term += this.getCurrentToken()
+          this.advanceToken()
+          term += this.compileExpression()
+          term += this.getCurrentToken()
+          this.advanceToken()
+          return term
         } else if (["-", "~"].includes(this.getCurrentToken())) {
-          str = this.appendAdvance(str, "symbol")
-          str = this.appendAdvance(str, "term", this.compileTerm())
+          term += this.getCurrentToken()
+          this.advanceToken()
+          term += this.compileTerm()
+          return term
         }
-        break
       }
-    }
 
-    return str
+      // case "stringConstant": {
+      //   str = this.appendAdvance(str, "stringConstant")
+      //   break
+      // }
+
+      // case "keyword": {
+      //   str = this.appendAdvance(str, "keyword")
+      //   break
+      // }
+
+      // case "identifier": {
+      //   switch (this.tokenizer.getLookAhead().token) {
+      //     case "[": {
+      //       str = this.appendAdvance(str, "identifier")
+      //       str = this.appendAdvance(str, "symbol")
+      //       str = this.appendAdvance(
+      //         str,
+      //         "expression",
+      //         this.compileExpression()
+      //       )
+      //       str = this.appendAdvance(str, "symbol")
+      //       break
+      //     }
+
+      //     case "(":
+      //     case ".": {
+      //       str = str + this.compileSubroutineCall()
+      //       break
+      //     }
+
+      //     default: {
+      //       str = this.appendAdvance(str, "identifier")
+      //     }
+      //   }
+
+      //   break
+      // }
+    }
   }
 
   compileExpressionList() {
