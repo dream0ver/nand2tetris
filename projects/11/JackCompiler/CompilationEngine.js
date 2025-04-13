@@ -3,15 +3,11 @@ const VMWriter = require("./VMWriter").VMWriter
 const SymbolTable = require("./SymbolTable").SymbolTable
 
 class CompilationEngine {
-  CLASSNAME = ""
   constructor(filepath) {
+    this.className = ""
     this.tokenizer = new Tokenizer(filepath)
     this.vmwriter = new VMWriter(filepath)
     this.symboltable = new SymbolTable()
-  }
-
-  isNumber(symbol) {
-    return !isNaN(Number(symbol))
   }
 
   advanceToken() {
@@ -26,22 +22,15 @@ class CompilationEngine {
     return this.tokenizer.current.type
   }
 
-  printLogs() {
-    console.log("class name ", this.CLASSNAME)
+  debug() {
+    console.log("class name ", this.className)
     console.log("class table ", this.symboltable.class_table)
     console.log("subroutine table ", this.symboltable.subroutine_table)
   }
 
   compile() {
     this.compileClass()
-    this.printLogs()
-  }
-
-  getTypeTag() {
-    const primitives = ["int", "char", "boolean", "void"]
-    return primitives.includes(this.getCurrentToken())
-      ? "keyword"
-      : "identifier"
+    this.debug()
   }
 
   compileClass() {
@@ -50,7 +39,7 @@ class CompilationEngine {
 
     this.advanceToken() // class
     this.advanceToken() // identifier
-    this.CLASSNAME = this.getCurrentToken()
+    this.className = this.getCurrentToken()
     this.advanceToken() // opening bracket
     this.advanceToken()
 
@@ -103,7 +92,7 @@ class CompilationEngine {
     this.symboltable.startSubroutine(name)
 
     if (type == "method")
-      this.symboltable.define("this", this.CLASSNAME, "argument")
+      this.symboltable.define("this", this.className, "argument")
 
     this.advanceToken() // symbol (
 
@@ -138,7 +127,7 @@ class CompilationEngine {
     while (this.getCurrentToken() == "var") this.compileVarDec()
 
     this.vmwriter.writeFunction(
-      `${this.CLASSNAME}.${this.symboltable.getSubroutineName()}`,
+      `${this.className}.${this.symboltable.getSubroutineName()}`,
       this.symboltable.varCount("local")
     )
 
@@ -274,21 +263,6 @@ class CompilationEngine {
     return str
   }
 
-  getXmlSymbol(symbol) {
-    switch (symbol) {
-      case "<":
-        return "&lt;"
-      case ">":
-        return "&gt;"
-      case "&":
-        return "&amp;"
-      case '"':
-        return "&quot;"
-      default:
-        return symbol
-    }
-  }
-
   compileExpression() {
     let str = "\n"
 
@@ -297,12 +271,7 @@ class CompilationEngine {
     str = this.appendAdvance(str, "term", this.compileTerm())
 
     while (op.includes(this.getCurrentToken())) {
-      str = this.appendAdvance(
-        str,
-        "symbol",
-        this.getXmlSymbol(this.getCurrentToken()),
-        true
-      )
+      str = this.appendAdvance(str, "symbol", this.getCurrentToken(), true)
       str = this.appendAdvance(str, "term", this.compileTerm())
     }
 
@@ -409,8 +378,5 @@ class CompilationEngine {
     return str
   }
 }
-
-if (require.main == module)
-  new CompilationEngine(process.argv.slice(-1)[0]).compile()
 
 module.exports = { CompilationEngine }
