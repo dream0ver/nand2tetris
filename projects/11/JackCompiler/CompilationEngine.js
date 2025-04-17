@@ -29,6 +29,33 @@ class CompilationEngine {
     console.log("subroutine table ", this.symboltable.subroutine_table)
   }
 
+  infixToPostfix(exp) {
+    const stack = []
+    let postfix = ""
+    for (const c of exp) {
+      if (c === "(") {
+        stack.push(c)
+      } else if (c === ")") {
+        while (stack.length && stack[stack.length - 1] !== "(")
+          postfix += stack.pop()
+        stack.pop()
+      } else if (VALID_OPERATORS.includes(c)) {
+        while (
+          stack.length &&
+          VALID_OPERATORS.includes(stack[stack.length - 1]) &&
+          OPERATOR_PRECEDENCE[stack[stack.length - 1]] >= OPERATOR_PRECEDENCE[c]
+        ) {
+          postfix += stack.pop()
+        }
+        stack.push(c)
+      } else {
+        postfix += c
+      }
+    }
+    while (stack.length) postfix += stack.pop()
+    return postfix
+  }
+
   compile() {
     this.compileClass()
     // this.debug()
@@ -184,33 +211,6 @@ class CompilationEngine {
     }
   }
 
-  infixToPostfix(exp) {
-    const stack = []
-    let postfix = ""
-    for (const c of exp) {
-      if (c === "(") {
-        stack.push(c)
-      } else if (c === ")") {
-        while (stack.length && stack[stack.length - 1] !== "(")
-          postfix += stack.pop()
-        stack.pop()
-      } else if (VALID_OPERATORS.includes(c)) {
-        while (
-          stack.length &&
-          VALID_OPERATORS.includes(stack[stack.length - 1]) &&
-          OPERATOR_PRECEDENCE[stack[stack.length - 1]] >= OPERATOR_PRECEDENCE[c]
-        ) {
-          postfix += stack.pop()
-        }
-        stack.push(c)
-      } else {
-        postfix += c
-      }
-    }
-    while (stack.length) postfix += stack.pop()
-    return postfix
-  }
-
   compileLet() {
     let name
     this.advanceToken() // keyword let
@@ -230,11 +230,52 @@ class CompilationEngine {
     }
     this.advanceToken() // symbol =
 
-    let compiledExpression = this.compileExpression()
-    console.log({
-      infix: compiledExpression,
-      postfix: this.infixToPostfix(compiledExpression),
-    })
+    let compiledExpression = this.infixToPostfix(this.compileExpression())
+
+    console.log(compiledExpression)
+
+    for (const c of compiledExpression) {
+      if (VALID_OPERATORS.includes(c)) {
+        let cmd
+        switch (c) {
+          // neg and not not implemented
+          case "+":
+            cmd = "add"
+            break
+          case "-":
+            cmd = "sub"
+            break
+          case "*":
+            cmd = "call Math.multiply 2"
+            break
+          case "/":
+            cmd = "call Math.divide 2"
+            break
+          case "=":
+            cmd = "eq"
+            break
+          case ">":
+            cmd = "gt"
+            break
+          case "<":
+            cmd = "lt"
+            break
+          case "&":
+            cmd = "and"
+            break
+          case "|":
+            cmd = "or"
+            break
+        }
+        this.vmwriter.writeArithmetic(cmd)
+      } else {
+        this.vmwriter.writePush(c)
+      }
+    }
+
+    const { kind, index } = this.symboltable.findIdentifier(name)
+
+    this.vmwriter.writePop(kind, index)
 
     this.advanceToken() // symbol ;
   }
@@ -299,17 +340,17 @@ class CompilationEngine {
   }
 
   compileExpression() {
-    let infix = ""
+    let exp = ""
 
-    infix += this.compileTerm()
+    exp += this.compileTerm()
 
     while (VALID_OPERATORS.includes(this.getCurrentToken())) {
-      infix += this.getCurrentToken()
+      exp += this.getCurrentToken()
       this.advanceToken()
-      infix += this.compileTerm()
+      exp += this.compileTerm()
     }
 
-    return infix
+    return exp
   }
 
   compileSubroutineCall() {
