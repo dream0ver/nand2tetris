@@ -9,6 +9,7 @@ class CompilationEngine {
     this.tokenizer = new Tokenizer(filepath)
     this.vmwriter = new VMWriter(filepath)
     this.symboltable = new SymbolTable()
+    this.labelId = -1
   }
 
   advanceToken() {
@@ -258,10 +259,10 @@ class CompilationEngine {
           this.compileReturn()
           break
         }
-        // case "if": {
-        //   str = this.appendAdvance(str, "ifStatement", this.compileIf())
-        //   break
-        // }
+        case "if": {
+          this.compileIf()
+          break
+        }
         // case "while": {
         //   str = this.appendAdvance(str, "whileStatement", this.compileWhile())
         //   break
@@ -303,24 +304,25 @@ class CompilationEngine {
   }
 
   compileIf() {
-    let str = "\n"
+    this.labelId++
+    this.advanceToken() // keyword if
+    this.advanceToken() // symbol (
+    this.writeExpressionVMCode(this.compileExpression())
+    this.advanceToken() // symbol )
+    this.advanceToken() // symbol {
+    this.vmwriter.writeIf(`IF_TRUE${this.labelId}`)
+    this.vmwriter.writeGoto(`IF_FALSE${this.labelId}`)
+    this.vmwriter.writeLabel(`IF_TRUE${this.labelId}`)
+    this.compileStatements()
+    this.vmwriter.writeLabel(`IF_FALSE${this.labelId}`)
+    this.advanceToken() // symbol }
 
-    str = this.appendAdvance(str, "keyword")
-    str = this.appendAdvance(str, "symbol")
-    str = this.appendAdvance(str, "expression", this.compileExpression())
-    str = this.appendAdvance(str, "symbol")
-    str = this.appendAdvance(str, "symbol")
-    str = this.appendAdvance(str, "statements", this.compileStatements())
-    str = this.appendAdvance(str, "symbol")
-
-    if (this.getCurrentToken() == "else") {
-      str = this.appendAdvance(str, "keyword")
-      str = this.appendAdvance(str, "symbol")
-      str = this.appendAdvance(str, "statements", this.compileStatements())
-      str = this.appendAdvance(str, "symbol")
-    }
-
-    return str
+    // if (this.getCurrentToken() == "else") {
+    //   str = this.appendAdvance(str, "keyword")
+    //   str = this.appendAdvance(str, "symbol")
+    //   str = this.appendAdvance(str, "statements", this.compileStatements())
+    //   str = this.appendAdvance(str, "symbol")
+    // }
   }
 
   compileWhile() {

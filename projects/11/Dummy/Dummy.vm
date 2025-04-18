@@ -1,11 +1,6 @@
 function Dummy.main 1
-push constant 2
-push constant 3
+push constant 13
 add  
-push constant 8
-call Math.multiply 2  
-pop local 0
-push constant 3
-push constant 1
-add  
-return  
+if-goto IF_TRUE0 
+goto IF_FALSE0 
+label IF_TRUE0 
