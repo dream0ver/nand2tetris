@@ -26,13 +26,13 @@ class CompilationEngine {
 
   infixToPostfix(exp) {
     const stack = []
-    let postfix = ""
+    let postfix = []
     for (const c of exp) {
       if (c === "(") {
         stack.push(c)
       } else if (c === ")") {
         while (stack.length && stack[stack.length - 1] !== "(")
-          postfix += stack.pop()
+          postfix.push(stack.pop())
         stack.pop()
       } else if (VALID_OPERATORS.includes(c)) {
         while (
@@ -40,19 +40,21 @@ class CompilationEngine {
           VALID_OPERATORS.includes(stack[stack.length - 1]) &&
           OPERATOR_PRECEDENCE[stack[stack.length - 1]] >= OPERATOR_PRECEDENCE[c]
         ) {
-          postfix += stack.pop()
+          postfix.push(stack.pop())
         }
         stack.push(c)
       } else {
-        postfix += c
+        postfix.push(c)
       }
     }
-    while (stack.length) postfix += stack.pop()
+    while (stack.length) postfix.push(stack.pop())
     return postfix
   }
 
   writeExpressionVMCode(exp) {
-    for (const c of this.infixToPostfix(exp)) {
+    exp = this.infixToPostfix(exp)
+    console.log({ exp })
+    for (const c of exp) {
       if (VALID_OPERATORS.includes(c)) {
         let cmd
         switch (c) {
@@ -314,15 +316,21 @@ class CompilationEngine {
     this.vmwriter.writeGoto(`IF_FALSE${this.labelId}`)
     this.vmwriter.writeLabel(`IF_TRUE${this.labelId}`)
     this.compileStatements()
-    this.vmwriter.writeLabel(`IF_FALSE${this.labelId}`)
     this.advanceToken() // symbol }
 
-    // if (this.getCurrentToken() == "else") {
-    //   str = this.appendAdvance(str, "keyword")
-    //   str = this.appendAdvance(str, "symbol")
-    //   str = this.appendAdvance(str, "statements", this.compileStatements())
-    //   str = this.appendAdvance(str, "symbol")
-    // }
+    if (this.getCurrentToken() == "else") {
+      this.vmwriter.writeGoto(`IF_END${this.labelId}`)
+    }
+
+    this.vmwriter.writeLabel(`IF_FALSE${this.labelId}`)
+
+    if (this.getCurrentToken() == "else") {
+      this.advanceToken() // keyword else
+      this.advanceToken() // symbol {
+      this.compileStatements()
+      this.advanceToken() // symbol }
+      this.vmwriter.writeLabel(`IF_END${this.labelId}`)
+    }
   }
 
   compileWhile() {

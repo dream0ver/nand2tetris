@@ -1,6 +1,16 @@
 function Dummy.main 1
-push constant 13
+push constant 2
+push constant 3
 add  
 if-goto IF_TRUE0 
 goto IF_FALSE0 
 label IF_TRUE0 
+push constant 5
+pop local 0
+goto IF_END0 
+label IF_FALSE0 
+push constant 8
+pop local 0
+label IF_END0 
+push constant 0
+return  
