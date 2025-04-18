@@ -5,7 +5,5 @@ add
 push constant 8
 call Math.multiply 2  
 pop local 0
-push constant 3
-push constant 1
-add  
+push constant 0
 return  

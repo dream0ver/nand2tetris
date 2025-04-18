@@ -23,12 +23,6 @@ class CompilationEngine {
     return this.tokenizer.current.type
   }
 
-  debug() {
-    console.log("class name ", this.className)
-    console.log("class table ", this.symboltable.class_table)
-    console.log("subroutine table ", this.symboltable.subroutine_table)
-  }
-
   infixToPostfix(exp) {
     const stack = []
     let postfix = ""
@@ -56,9 +50,49 @@ class CompilationEngine {
     return postfix
   }
 
+  writeExpressionVMCode(exp) {
+    for (const c of this.infixToPostfix(exp)) {
+      if (VALID_OPERATORS.includes(c)) {
+        let cmd
+        switch (c) {
+          // neg and not not implemented
+          case "+":
+            cmd = "add"
+            break
+          case "-":
+            cmd = "sub"
+            break
+          case "*":
+            cmd = "call Math.multiply 2"
+            break
+          case "/":
+            cmd = "call Math.divide 2"
+            break
+          case "=":
+            cmd = "eq"
+            break
+          case ">":
+            cmd = "gt"
+            break
+          case "<":
+            cmd = "lt"
+            break
+          case "&":
+            cmd = "and"
+            break
+          case "|":
+            cmd = "or"
+            break
+        }
+        this.vmwriter.writeArithmetic(cmd)
+      } else {
+        this.vmwriter.writePush("constant", c)
+      }
+    }
+  }
+
   compile() {
     this.compileClass()
-    // this.debug()
   }
 
   compileClass() {
@@ -134,6 +168,8 @@ class CompilationEngine {
   compileParameterList() {
     let type, name
 
+    if (this.tokenizer.getLookAhead().token == ")") this.advanceToken()
+
     while (this.getCurrentToken() != ")") {
       this.advanceToken() // type
 
@@ -184,11 +220,42 @@ class CompilationEngine {
     this.advanceToken() // symbol ;
   }
 
+  compileReturn() {
+    this.advanceToken() // return keyword
+
+    this.getCurrentToken() == ";"
+      ? this.vmwriter.writePush("constant", 0)
+      : this.writeExpressionVMCode(this.compileExpression())
+
+    this.vmwriter.writeReturn()
+    this.advanceToken() // symbol ;
+  }
+
+  compileExpression() {
+    let exp = ""
+
+    exp += this.compileTerm()
+
+    while (VALID_OPERATORS.includes(this.getCurrentToken())) {
+      exp += this.getCurrentToken()
+      this.advanceToken()
+      exp += this.compileTerm()
+    }
+
+    return exp
+  }
+
+  /* BELOW METHODS PENDING */
+
   compileStatements() {
     while (this.getCurrentToken() != "}") {
       switch (this.getCurrentToken()) {
         case "let": {
           this.compileLet()
+          break
+        }
+        case "return": {
+          this.compileReturn()
           break
         }
         // case "if": {
@@ -201,10 +268,6 @@ class CompilationEngine {
         // }
         // case "do": {
         //   str = this.appendAdvance(str, "doStatement", this.compileDo())
-        //   break
-        // }
-        // case "return": {
-        //   str = this.appendAdvance(str, "returnStatement", this.compileReturn())
         //   break
         // }
       }
@@ -230,48 +293,7 @@ class CompilationEngine {
     }
     this.advanceToken() // symbol =
 
-    let compiledExpression = this.infixToPostfix(this.compileExpression())
-
-    console.log(compiledExpression)
-
-    for (const c of compiledExpression) {
-      if (VALID_OPERATORS.includes(c)) {
-        let cmd
-        switch (c) {
-          // neg and not not implemented
-          case "+":
-            cmd = "add"
-            break
-          case "-":
-            cmd = "sub"
-            break
-          case "*":
-            cmd = "call Math.multiply 2"
-            break
-          case "/":
-            cmd = "call Math.divide 2"
-            break
-          case "=":
-            cmd = "eq"
-            break
-          case ">":
-            cmd = "gt"
-            break
-          case "<":
-            cmd = "lt"
-            break
-          case "&":
-            cmd = "and"
-            break
-          case "|":
-            cmd = "or"
-            break
-        }
-        this.vmwriter.writeArithmetic(cmd)
-      } else {
-        this.vmwriter.writePush(c)
-      }
-    }
+    this.writeExpressionVMCode(this.compileExpression())
 
     const { kind, index } = this.symboltable.findIdentifier(name)
 
@@ -323,34 +345,6 @@ class CompilationEngine {
     str = this.appendAdvance(str, "symbol")
 
     return str
-  }
-
-  compileReturn() {
-    let str = "\n"
-
-    str = this.appendAdvance(str, "keyword")
-
-    if (this.getCurrentToken() != ";") {
-      str = this.appendAdvance(str, "expression", this.compileExpression())
-    }
-
-    str = this.appendAdvance(str, "symbol")
-
-    return str
-  }
-
-  compileExpression() {
-    let exp = ""
-
-    exp += this.compileTerm()
-
-    while (VALID_OPERATORS.includes(this.getCurrentToken())) {
-      exp += this.getCurrentToken()
-      this.advanceToken()
-      exp += this.compileTerm()
-    }
-
-    return exp
   }
 
   compileSubroutineCall() {
