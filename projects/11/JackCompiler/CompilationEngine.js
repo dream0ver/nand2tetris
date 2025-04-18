@@ -120,15 +120,11 @@ class CompilationEngine {
   compileClassVarDec() {
     let kind, type, name
     kind = this.getCurrentToken()
-
     this.advanceToken() // type
     type = this.getCurrentToken()
-
     this.advanceToken() // identifier
     name = this.getCurrentToken()
-
     this.symboltable.define(name, type, kind)
-
     this.advanceToken() // symbol (, or ;)
 
     while (this.getCurrentToken() != ";") {
@@ -145,26 +141,18 @@ class CompilationEngine {
     let type, returnType, name
 
     type = this.getCurrentToken()
-
     this.advanceToken() // return type
-
     returnType = this.getCurrentToken()
-
     this.advanceToken() // subroutine identifier
-
     name = this.getCurrentToken()
-
     this.symboltable.startSubroutine(name)
 
     if (type == "method")
       this.symboltable.define("this", this.className, "argument")
 
     this.advanceToken() // symbol (
-
     this.compileParameterList()
-
     this.advanceToken() // )
-
     this.compileSubroutineBody()
   }
 
@@ -175,15 +163,10 @@ class CompilationEngine {
 
     while (this.getCurrentToken() != ")") {
       this.advanceToken() // type
-
       type = this.getCurrentToken()
-
       this.advanceToken() // argument identifier
-
       name = this.getCurrentToken()
-
       this.symboltable.define(name, type, "argument")
-
       this.advanceToken() // symbol , or )
     }
   }
@@ -248,7 +231,57 @@ class CompilationEngine {
     return exp
   }
 
-  /* BELOW METHODS PENDING */
+  compileIf() {
+    this.labelId++
+    this.advanceToken() // keyword if
+    this.advanceToken() // symbol (
+    this.writeExpressionVMCode(this.compileExpression())
+    this.advanceToken() // symbol )
+    this.advanceToken() // symbol {
+    this.vmwriter.writeIf(`IF_TRUE${this.labelId}`)
+    this.vmwriter.writeGoto(`IF_FALSE${this.labelId}`)
+    this.vmwriter.writeLabel(`IF_TRUE${this.labelId}`)
+    this.compileStatements()
+    this.advanceToken() // symbol }
+
+    if (this.getCurrentToken() == "else") {
+      this.vmwriter.writeGoto(`IF_END${this.labelId}`)
+    }
+
+    this.vmwriter.writeLabel(`IF_FALSE${this.labelId}`)
+
+    if (this.getCurrentToken() == "else") {
+      this.advanceToken() // keyword else
+      this.advanceToken() // symbol {
+      this.compileStatements()
+      this.advanceToken() // symbol }
+      this.vmwriter.writeLabel(`IF_END${this.labelId}`)
+    }
+  }
+
+  compileWhile() {
+    this.labelId++
+    this.advanceToken() // keyword while
+    this.advanceToken() // symbol (
+    this.vmwriter.writeLabel(`WHILE_EXP${this.labelId}`)
+    this.writeExpressionVMCode(this.compileExpression())
+    this.vmwriter.writeIf(`WHILE_IF${this.labelId}`)
+    this.vmwriter.writeGoto(`WHILE_END${this.labelId}`)
+    this.advanceToken() // symbol )
+    this.advanceToken() // symbol {
+    this.vmwriter.writeLabel(`WHILE_IF${this.labelId}`)
+    this.compileStatements()
+    this.vmwriter.writeGoto(`WHILE_EXP${this.labelId}`)
+    this.vmwriter.writeLabel(`WHILE_END${this.labelId}`)
+    this.advanceToken() // symbol }
+  }
+
+  /* 
+    compileLet
+    expression evaluation error with double digit
+    compile terms
+    unary operations 
+  */
 
   compileStatements() {
     while (this.getCurrentToken() != "}") {
@@ -265,10 +298,10 @@ class CompilationEngine {
           this.compileIf()
           break
         }
-        // case "while": {
-        //   str = this.appendAdvance(str, "whileStatement", this.compileWhile())
-        //   break
-        // }
+        case "while": {
+          this.compileWhile()
+          break
+        }
         // case "do": {
         //   str = this.appendAdvance(str, "doStatement", this.compileDo())
         //   break
@@ -303,48 +336,6 @@ class CompilationEngine {
     this.vmwriter.writePop(kind, index)
 
     this.advanceToken() // symbol ;
-  }
-
-  compileIf() {
-    this.labelId++
-    this.advanceToken() // keyword if
-    this.advanceToken() // symbol (
-    this.writeExpressionVMCode(this.compileExpression())
-    this.advanceToken() // symbol )
-    this.advanceToken() // symbol {
-    this.vmwriter.writeIf(`IF_TRUE${this.labelId}`)
-    this.vmwriter.writeGoto(`IF_FALSE${this.labelId}`)
-    this.vmwriter.writeLabel(`IF_TRUE${this.labelId}`)
-    this.compileStatements()
-    this.advanceToken() // symbol }
-
-    if (this.getCurrentToken() == "else") {
-      this.vmwriter.writeGoto(`IF_END${this.labelId}`)
-    }
-
-    this.vmwriter.writeLabel(`IF_FALSE${this.labelId}`)
-
-    if (this.getCurrentToken() == "else") {
-      this.advanceToken() // keyword else
-      this.advanceToken() // symbol {
-      this.compileStatements()
-      this.advanceToken() // symbol }
-      this.vmwriter.writeLabel(`IF_END${this.labelId}`)
-    }
-  }
-
-  compileWhile() {
-    let str = "\n"
-
-    str = this.appendAdvance(str, "keyword")
-    str = this.appendAdvance(str, "symbol")
-    str = this.appendAdvance(str, "expression", this.compileExpression())
-    str = this.appendAdvance(str, "symbol")
-    str = this.appendAdvance(str, "symbol")
-    str = this.appendAdvance(str, "statements", this.compileStatements())
-    str = this.appendAdvance(str, "symbol")
-
-    return str
   }
 
   compileDo() {
