@@ -1,4 +1,4 @@
-const VALID_OPERATORS = ["+", "-", "*", "/", "&", "|", "<", ">", "="]
+const VALID_OPERATORS = ["+", "-", "*", "/", "&", "|", "<", ">", "="];
 
 const OPERATOR_PRECEDENCE = {
   "=": 1,
@@ -10,7 +10,7 @@ const OPERATOR_PRECEDENCE = {
   "-": 5,
   "*": 6,
   "/": 6,
-}
+};
 
 const VALID_SYMBOLS = [
   "{",
@@ -32,7 +32,7 @@ const VALID_SYMBOLS = [
   ">",
   "=",
   "~",
-]
+];
 
 const VALID_KEYWORDS = [
   "class",
@@ -56,7 +56,7 @@ const VALID_KEYWORDS = [
   "false",
   "null",
   "this",
-]
+];
 
 const VALID_TOKENS = {
   SYMBOL: "symbol",
@@ -64,7 +64,7 @@ const VALID_TOKENS = {
   KEYWORD: "keyword",
   STRING_CONST: "stringConstant",
   INT_CONST: "integerConstant",
-}
+};
 
 module.exports = {
   VALID_OPERATORS,
@@ -72,4 +72,4 @@ module.exports = {
   VALID_KEYWORDS,
   VALID_TOKENS,
   OPERATOR_PRECEDENCE,
-}
+};
