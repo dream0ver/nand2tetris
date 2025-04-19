@@ -1,12 +1,7 @@
 function Dummy.main 1
-label WHILE_EXP0 
-push constant 1
-if-goto WHILE_IF0 
-goto WHILE_END0 
-label WHILE_IF0 
 push constant 3
+push constant 5
+add  
 pop local 0
-goto WHILE_EXP0 
-label WHILE_END0 
-push constant 0
+push constant 48
 return  

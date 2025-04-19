@@ -52,13 +52,19 @@ class CompilationEngine {
   }
 
   writeExpressionVMCode(exp) {
+    /* 
+    find efficient way to flatten
+    */
+
+    exp = exp.flat(999999999)
     exp = this.infixToPostfix(exp)
-    console.log({ exp })
     for (const c of exp) {
       if (VALID_OPERATORS.includes(c)) {
         let cmd
         switch (c) {
-          // neg and not not implemented
+          /* 
+          neg and not not implemented
+          */
           case "+":
             cmd = "add"
             break
@@ -89,7 +95,15 @@ class CompilationEngine {
         }
         this.vmwriter.writeArithmetic(cmd)
       } else {
-        this.vmwriter.writePush("constant", c)
+        if (this.symboltable.findIdentifier(c) != null) {
+          const { kind, index } = this.symboltable.findIdentifier(c)
+          /* 
+          char, boolean and custom type assignment pending
+          */
+          this.vmwriter.writePush(kind, index)
+        } else {
+          this.vmwriter.writePush("constant", c)
+        }
       }
     }
   }
@@ -138,17 +152,17 @@ class CompilationEngine {
   }
 
   compileSubroutine() {
-    let type, returnType, name
+    let type, name
 
-    type = this.getCurrentToken()
+    type = this.getCurrentToken() // keyword (method,constructor,function)
     this.advanceToken() // return type
-    returnType = this.getCurrentToken()
     this.advanceToken() // subroutine identifier
     name = this.getCurrentToken()
     this.symboltable.startSubroutine(name)
 
-    if (type == "method")
+    if (type == "method") {
       this.symboltable.define("this", this.className, "argument")
+    }
 
     this.advanceToken() // symbol (
     this.compileParameterList()
@@ -218,14 +232,14 @@ class CompilationEngine {
   }
 
   compileExpression() {
-    let exp = ""
+    let exp = []
 
-    exp += this.compileTerm()
+    exp.push(this.compileTerm())
 
     while (VALID_OPERATORS.includes(this.getCurrentToken())) {
-      exp += this.getCurrentToken()
+      exp.push(this.getCurrentToken())
       this.advanceToken()
-      exp += this.compileTerm()
+      exp.push(this.compileTerm())
     }
 
     return exp
@@ -276,38 +290,49 @@ class CompilationEngine {
     this.advanceToken() // symbol }
   }
 
-  /* 
-    compileLet
-    expression evaluation error with double digit
-    compile terms
-    unary operations 
-  */
+  compileExpressionList() {
+    let nArgs = 0
+
+    if (this.getCurrentToken() != ")") {
+      this.writeExpressionVMCode(this.compileExpression())
+      nArgs++
+    }
+
+    while (this.getCurrentToken() == ",") {
+      this.advanceToken() // symbol ,
+      this.writeExpressionVMCode(this.compileExpression())
+      nArgs++
+    }
+
+    return nArgs
+  }
 
   compileStatements() {
     while (this.getCurrentToken() != "}") {
       switch (this.getCurrentToken()) {
-        case "let": {
+        case "let":
           this.compileLet()
           break
-        }
-        case "return": {
+        case "return":
           this.compileReturn()
           break
-        }
-        case "if": {
+        case "if":
           this.compileIf()
           break
-        }
-        case "while": {
+        case "while":
           this.compileWhile()
           break
-        }
-        // case "do": {
-        //   str = this.appendAdvance(str, "doStatement", this.compileDo())
-        //   break
-        // }
+        case "do":
+          this.compileDo()
+          break
       }
     }
+  }
+
+  compileDo() {
+    this.advanceToken() // keyword do
+    this.compileSubroutineCall()
+    this.advanceToken() // symbol ;
   }
 
   compileLet() {
@@ -320,7 +345,7 @@ class CompilationEngine {
 
       this.advanceToken() // [
 
-      this.compileExpression()
+      // this.compileExpression()
 
       this.advanceToken() // ]
     } else {
@@ -338,36 +363,23 @@ class CompilationEngine {
     this.advanceToken() // symbol ;
   }
 
-  compileDo() {
-    let str = "\n"
-
-    str = this.appendAdvance(str, "keyword")
-    str = str + this.compileSubroutineCall()
-    str = this.appendAdvance(str, "symbol")
-
-    return str
-  }
-
   compileSubroutineCall() {
-    let str = ""
-    let isMethod = this.tokenizer.getLookAhead().token == "."
+    /* 
+    method subroutine calling pending
+    */
+    let name = this.getCurrentToken()
+    this.advanceToken() // identifier
 
-    str = this.appendAdvance(str, "identifier")
-
-    if (isMethod) {
-      str = this.appendAdvance(str, "symbol")
-      str = this.appendAdvance(str, "identifier")
+    if (this.tokenizer.getLookAhead().token == ".") {
+      name += this.getCurrentToken()
+      this.advanceToken() // symbol .
+      name += this.getCurrentToken()
+      this.advanceToken() // identifier
     }
 
-    str = this.appendAdvance(str, "symbol")
-    str = this.appendAdvance(
-      str,
-      "expressionList",
-      this.compileExpressionList()
-    )
-    str = this.appendAdvance(str, "symbol")
-
-    return str
+    this.advanceToken() // symbol (
+    this.vmwriter.writeCall(name, this.compileExpressionList())
+    this.advanceToken() // symbol )
   }
 
   compileTerm() {
@@ -379,75 +391,62 @@ class CompilationEngine {
       }
 
       case "symbol": {
-        let term = ""
+        let term = []
         if (this.getCurrentToken() == "(") {
-          term += this.getCurrentToken()
+          term.push(this.getCurrentToken())
           this.advanceToken()
-          term += this.compileExpression()
-          term += this.getCurrentToken()
+          term.push(this.compileExpression())
+          term.push(this.getCurrentToken())
           this.advanceToken()
-          return term
-        } else if (["-", "~"].includes(this.getCurrentToken())) {
-          term += this.getCurrentToken()
-          this.advanceToken()
-          term += this.compileTerm()
           return term
         }
+        // else if (["-", "~"].includes(this.getCurrentToken())) {
+        //   term += this.getCurrentToken()
+        //   this.advanceToken()
+        //   term += this.compileTerm()
+        //   return term
+        // }
       }
 
-      // case "stringConstant": {
-      //   str = this.appendAdvance(str, "stringConstant")
-      //   break
-      // }
+      case "identifier": {
+        switch (this.tokenizer.getLookAhead().token) {
+          case "(":
+          case ".":
+            this.compileSubroutineCall()
+            break
+
+          // case "[": {
+          //   str = this.appendAdvance(str, "identifier")
+          //   str = this.appendAdvance(str, "symbol")
+          //   str = this.appendAdvance(
+          //     str,
+          //     "expression",
+          //     this.compileExpression()
+          //   )
+          //   str = this.appendAdvance(str, "symbol")
+          //   break
+          // }
+
+          default: {
+            let term = ""
+            term += this.getCurrentToken() // identifier
+            this.advanceToken()
+            return term
+          }
+        }
+        break
+      }
 
       // case "keyword": {
       //   str = this.appendAdvance(str, "keyword")
       //   break
       // }
 
-      // case "identifier": {
-      //   switch (this.tokenizer.getLookAhead().token) {
-      //     case "[": {
-      //       str = this.appendAdvance(str, "identifier")
-      //       str = this.appendAdvance(str, "symbol")
-      //       str = this.appendAdvance(
-      //         str,
-      //         "expression",
-      //         this.compileExpression()
-      //       )
-      //       str = this.appendAdvance(str, "symbol")
-      //       break
-      //     }
-
-      //     case "(":
-      //     case ".": {
-      //       str = str + this.compileSubroutineCall()
-      //       break
-      //     }
-
-      //     default: {
-      //       str = this.appendAdvance(str, "identifier")
-      //     }
-      //   }
-
+      // case "stringConstant": {
+      //   str = this.appendAdvance(str, "stringConstant")
       //   break
       // }
     }
-  }
-
-  compileExpressionList() {
-    let str = "\n"
-
-    if (this.getCurrentToken() != ")") {
-      str = this.appendAdvance(str, "expression", this.compileExpression())
-    }
-
-    while (this.getCurrentToken() == ",") {
-      str = this.appendAdvance(str, "symbol")
-      str = this.appendAdvance(str, "expression", this.compileExpression())
-    }
-
-    return str
   }
 }
 

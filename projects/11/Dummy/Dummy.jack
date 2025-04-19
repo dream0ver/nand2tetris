@@ -1,14 +1,7 @@
 class Dummy {
-
     function void main() {
-      
-      var int i;
-
-      while(1){
-         let i = 3;
-      }
-
-
-      return;
+      var int num;
+      let num = 3+5;
+      return 48;
    }
 }
