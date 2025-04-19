@@ -1,7 +1,12 @@
 class Dummy {
-    function void main() {
+
+    function int returnOne(){
+      return 1;
+    }
+
+    function int main() {
       var int num;
-      let num = 3+5;
-      return 48;
+      let num = Dummy.returnOne();
+      return num;
    }
 }

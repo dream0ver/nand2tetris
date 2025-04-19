@@ -55,7 +55,7 @@ class CompilationEngine {
     /* 
     find efficient way to flatten
     */
-
+    if (exp[0] == "functionCall") return
     exp = exp.flat(999999999)
     exp = this.infixToPostfix(exp)
     for (const c of exp) {
@@ -370,7 +370,7 @@ class CompilationEngine {
     let name = this.getCurrentToken()
     this.advanceToken() // identifier
 
-    if (this.tokenizer.getLookAhead().token == ".") {
+    if (this.getCurrentToken() == ".") {
       name += this.getCurrentToken()
       this.advanceToken() // symbol .
       name += this.getCurrentToken()
@@ -413,7 +413,7 @@ class CompilationEngine {
           case "(":
           case ".":
             this.compileSubroutineCall()
-            break
+            return "functionCall"
 
           // case "[": {
           //   str = this.appendAdvance(str, "identifier")

@@ -1,7 +1,8 @@
+function Dummy.returnOne 0
+push constant 1
+return  
 function Dummy.main 1
-push constant 3
-push constant 5
-add  
+call Dummy.returnOne 0
 pop local 0
-push constant 48
+push local 0
 return  
