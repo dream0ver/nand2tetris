@@ -52,9 +52,6 @@ class CompilationEngine {
   }
 
   writeExpressionVMCode(exp) {
-    /* 
-    find efficient way to flatten
-    */
     if (exp[0] == "functionCall") return
     exp = exp.flat(999999999)
     exp = this.infixToPostfix(exp)
@@ -62,9 +59,6 @@ class CompilationEngine {
       if (VALID_OPERATORS.includes(c)) {
         let cmd
         switch (c) {
-          /* 
-          neg and not not implemented
-          */
           case "+":
             cmd = "add"
             break
@@ -97,9 +91,6 @@ class CompilationEngine {
       } else {
         if (this.symboltable.findIdentifier(c) != null) {
           const { kind, index } = this.symboltable.findIdentifier(c)
-          /* 
-          char, boolean and custom type assignment pending
-          */
           this.vmwriter.writePush(kind, index)
         } else {
           this.vmwriter.writePush("constant", c)
@@ -376,11 +367,10 @@ class CompilationEngine {
   }
 
   compileSubroutineCall() {
-    /* 
-    method subroutine calling pending
-    */
     let name = this.getCurrentToken()
     this.advanceToken() // identifier
+
+    const isMethod = this.symboltable.findIdentifier(name) != null
 
     if (this.getCurrentToken() == ".") {
       name += this.getCurrentToken()
@@ -412,12 +402,12 @@ class CompilationEngine {
           this.advanceToken()
           return term
         }
-        // else if (["-", "~"].includes(this.getCurrentToken())) {
-        //   term += this.getCurrentToken()
-        //   this.advanceToken()
-        //   term += this.compileTerm()
-        //   return term
-        // }
+        /*   else if (["-", "~"].includes(this.getCurrentToken())) {
+          term += this.getCurrentToken()
+          this.advanceToken()
+          term += this.compileTerm()
+          return term
+        } */
       }
 
       case "identifier": {
@@ -427,17 +417,17 @@ class CompilationEngine {
             this.compileSubroutineCall()
             return "functionCall"
 
-          // case "[": {
-          //   str = this.appendAdvance(str, "identifier")
-          //   str = this.appendAdvance(str, "symbol")
-          //   str = this.appendAdvance(
-          //     str,
-          //     "expression",
-          //     this.compileExpression()
-          //   )
-          //   str = this.appendAdvance(str, "symbol")
-          //   break
-          // }
+          /*  case "[": {
+            str = this.appendAdvance(str, "identifier")
+            str = this.appendAdvance(str, "symbol")
+            str = this.appendAdvance(
+              str,
+              "expression",
+              this.compileExpression()
+            )
+            str = this.appendAdvance(str, "symbol")
+            break
+          } */
 
           default:
             let term = ""
@@ -447,15 +437,15 @@ class CompilationEngine {
         }
       }
 
-      // case "keyword": {
-      //   str = this.appendAdvance(str, "keyword")
-      //   break
-      // }
+      /*  case "keyword": {
+        str = this.appendAdvance(str, "keyword")
+        break
+      } */
 
-      // case "stringConstant": {
-      //   str = this.appendAdvance(str, "stringConstant")
-      //   break
-      // }
+      /*   case "stringConstant": {
+        str = this.appendAdvance(str, "stringConstant")
+        break
+      } */
     }
   }
 }
