@@ -341,26 +341,38 @@ class CompilationEngine {
 
     if (this.tokenizer.getLookAhead().token == "[") {
       name = this.getCurrentToken()
-      this.advanceToken()
-
       this.advanceToken() // [
 
-      // this.compileExpression()
+      this.advanceToken() // exp start
+
+      this.writeExpressionVMCode(this.compileExpression())
+
+      const { kind, index } = this.symboltable.findIdentifier(name)
+
+      this.vmwriter.writePush(kind, index)
+      this.vmwriter.writeArithmetic("add")
 
       this.advanceToken() // ]
+      this.advanceToken() // symbol =
+
+      this.writeExpressionVMCode(this.compileExpression())
+      this.vmwriter.writePop("temp", 0)
+      this.vmwriter.writePop("pointer", 1)
+      this.vmwriter.writePush("temp", 0)
+      this.vmwriter.writePop("that", 0)
+
+      this.advanceToken() // symbol ;
     } else {
       name = this.getCurrentToken()
       this.advanceToken() // identifier
+      this.advanceToken() // symbol =
+
+      this.writeExpressionVMCode(this.compileExpression())
+      const { kind, index } = this.symboltable.findIdentifier(name)
+      this.vmwriter.writePop(kind, index)
+
+      this.advanceToken() // symbol ;
     }
-    this.advanceToken() // symbol =
-
-    this.writeExpressionVMCode(this.compileExpression())
-
-    const { kind, index } = this.symboltable.findIdentifier(name)
-
-    this.vmwriter.writePop(kind, index)
-
-    this.advanceToken() // symbol ;
   }
 
   compileSubroutineCall() {
@@ -427,14 +439,12 @@ class CompilationEngine {
           //   break
           // }
 
-          default: {
+          default:
             let term = ""
             term += this.getCurrentToken() // identifier
             this.advanceToken()
             return term
-          }
         }
-        break
       }
 
       // case "keyword": {

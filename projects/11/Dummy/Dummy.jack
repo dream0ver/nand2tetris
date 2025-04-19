@@ -1,12 +1,9 @@
 class Dummy {
 
-    function int returnOne(){
-      return 1;
-    }
-
-    function int main() {
-      var int num;
-      let num = Dummy.returnOne();
-      return num;
+    function void main() {
+      var Array myArr;
+      let myArr = Array.new(2);
+      let myArr[1] = 77;
+      return;
    }
 }
