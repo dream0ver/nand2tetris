@@ -93,10 +93,7 @@ class CompilationEngine {
         }
         this.vmwriter.writeArithmetic(cmd);
         prevOperandCount = 0;
-      } else if (["false", "true", "this"].includes(c)) {
-        /* 
-          this not implemented
-        */
+      } else if (["false", "true", "this", "null"].includes(c)) {
         switch (c) {
           case "false":
           case "null":
