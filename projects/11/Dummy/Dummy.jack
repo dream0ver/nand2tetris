@@ -1,8 +1,7 @@
 class Dummy {
 
     function void main() {
-      var boolean i;
-      let i = true;
+      do Output.printString("The average is ");
       return;
    }
 }

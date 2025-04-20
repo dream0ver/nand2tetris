@@ -52,10 +52,18 @@ class CompilationEngine {
   }
 
   writeExpressionVMCode(exp) {
-    if (exp[0] == "functionCall") return;
-    let prevOperandCount = 0;
     exp = this.infixToPostfix(exp.flat(999999999));
-    console.log(exp);
+    if (exp[0] == "functionCall") return;
+    if (exp[0] == "stringConstant") {
+      this.vmwriter.writePush("constant", exp[1].length);
+      this.vmwriter.writeCall("String.new", 1);
+      for (const char of exp[1]) {
+        this.vmwriter.writePush("constant", char.charCodeAt(0));
+        this.vmwriter.writeCall("String.appendChar", 2);
+      }
+      return;
+    }
+    let prevOperandCount = 0;
     for (const c of exp) {
       if (VALID_OPERATORS.includes(c)) {
         let cmd;
@@ -164,7 +172,7 @@ class CompilationEngine {
 
     type = this.getCurrentToken(); // method or constructor or function
     this.advanceToken(); // return type
-    this.advanceToken(); // identifier 
+    this.advanceToken(); // identifier
     name = this.getCurrentToken();
     this.symboltable.startSubroutine(name);
 
@@ -186,10 +194,10 @@ class CompilationEngine {
     while (this.getCurrentToken() != ")") {
       this.advanceToken(); // type
       type = this.getCurrentToken();
-      this.advanceToken(); // identifier 
+      this.advanceToken(); // identifier
       name = this.getCurrentToken();
       this.symboltable.define(name, type, "argument");
-      this.advanceToken(); // , or ) 
+      this.advanceToken(); // , or )
     }
   }
 
@@ -229,7 +237,7 @@ class CompilationEngine {
   }
 
   compileReturn() {
-    this.advanceToken(); // return 
+    this.advanceToken(); // return
 
     this.getCurrentToken() == ";"
       ? this.vmwriter.writePush("constant", 0)
@@ -460,10 +468,11 @@ class CompilationEngine {
         return term;
       }
 
-      /*   case "stringConstant": {
-        str = this.appendAdvance(str, "stringConstant")
-        break
-      } */
+      case "stringConstant": {
+        let term = ["stringConstant", this.getCurrentToken()];
+        this.advanceToken();
+        return term;
+      }
     }
   }
 }
