@@ -54,6 +54,7 @@ class CompilationEngine {
   writeExpressionVMCode(exp) {
     exp = this.infixToPostfix(exp.flat(999999999));
     if (exp[0] == "functionCall") return;
+    if (!exp[0]) return;
     if (exp[0] == "stringConstant") {
       this.vmwriter.writePush("constant", exp[1].length);
       this.vmwriter.writeCall("String.new", 1);
@@ -442,17 +443,23 @@ class CompilationEngine {
             this.compileSubroutineCall();
             return "functionCall";
 
-          /*  case "[": {
-            str = this.appendAdvance(str, "identifier")
-            str = this.appendAdvance(str, "symbol")
-            str = this.appendAdvance(
-              str,
-              "expression",
-              this.compileExpression()
-            )
-            str = this.appendAdvance(str, "symbol")
-            break
-          } */
+          case "[": {
+            let name = this.getCurrentToken();
+            this.advanceToken(); // [
+            this.advanceToken(); // first token in expression
+
+            this.writeExpressionVMCode(this.compileExpression());
+
+            const { kind, index } = this.symboltable.findIdentifier(name);
+            this.vmwriter.writePush(kind, index);
+            this.vmwriter.writeArithmetic("add");
+
+            this.vmwriter.writePop("pointer", 1);
+            this.vmwriter.writePush("that", 0);
+
+            this.advanceToken(); // ]
+            return [];
+          }
 
           default:
             let term = "";

@@ -1,7 +1,9 @@
 class Dummy {
 
     function void main() {
-      do Output.printString("The average is ");
+      var Array myArr;
+      let myArr = Array.new(2);
+      let myArr[0] = myArr[1];
       return;
    }
 }
