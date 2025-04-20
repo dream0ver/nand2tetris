@@ -1,9 +1,28 @@
 function Dummy.main 1
 push constant 2
-push constant 3
-push constant 8
-call Math.multiply 2  
-add  
+call Array.new 1
 pop local 0
 push constant 0
-return  
+push local 0
+add
+push constant 69
+pop temp 0
+pop pointer 1
+push temp 0
+pop that 0
+push constant 1
+push local 0
+add
+push constant 0
+push local 0
+add
+pop pointer 1
+push that 0
+push constant 44
+add
+pop temp 0
+pop pointer 1
+push temp 0
+pop that 0
+push constant 0
+return

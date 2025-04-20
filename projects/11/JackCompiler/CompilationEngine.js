@@ -1,7 +1,7 @@
 const Tokenizer = require("./Tokenizer").Tokenizer;
 const VMWriter = require("./VMWriter").VMWriter;
 const SymbolTable = require("./SymbolTable").SymbolTable;
-const { VALID_OPERATORS, INFIX_TO_POSTFIX } = require("./Util");
+const { VALID_OPERATORS } = require("./Util");
 
 class CompilationEngine {
   constructor(filepath) {
@@ -22,82 +22,6 @@ class CompilationEngine {
 
   getCurrentTokenType() {
     return this.tokenizer.current.type;
-  }
-
-  writeExpressionVMCode(exp) {
-    console.log("infix ", exp);
-    exp = INFIX_TO_POSTFIX(exp);
-    console.log("postfix ", exp);
-    if (exp[0] == "functionCall") return;
-    if (!exp[0]) return;
-    if (exp[0] == "stringConstant") {
-      this.vmwriter.writePush("constant", exp[1].length);
-      this.vmwriter.writeCall("String.new", 1);
-      for (const char of exp[1]) {
-        this.vmwriter.writePush("constant", char.charCodeAt(0));
-        this.vmwriter.writeCall("String.appendChar", 2);
-      }
-      return;
-    }
-    let prevOperandCount = 0;
-    for (const c of exp) {
-      if (VALID_OPERATORS.includes(c)) {
-        let cmd;
-        switch (c) {
-          case "+":
-            cmd = "add";
-            break;
-          case "-":
-            cmd = prevOperandCount == 2 ? "sub" : "neg";
-            break;
-          case "~":
-            cmd = "not";
-            break;
-          case "*":
-            cmd = "call Math.multiply 2";
-            break;
-          case "/":
-            cmd = "call Math.divide 2";
-            break;
-          case "=":
-            cmd = "eq";
-            break;
-          case ">":
-            cmd = "gt";
-            break;
-          case "<":
-            cmd = "lt";
-            break;
-          case "&":
-            cmd = "and";
-            break;
-          case "|":
-            cmd = "or";
-            break;
-        }
-        this.vmwriter.writeArithmetic(cmd);
-        prevOperandCount = 0;
-      } else if (["false", "true", "this", "null"].includes(c)) {
-        switch (c) {
-          case "false":
-          case "null":
-            this.vmwriter.writePush("constant", 0);
-            break;
-          case "true":
-            this.vmwriter.writePush("constant", 0);
-            this.vmwriter.writeArithmetic("not");
-            break;
-        }
-      } else {
-        prevOperandCount++;
-        if (this.symboltable.findIdentifier(c) != null) {
-          const { kind, index } = this.symboltable.findIdentifier(c);
-          this.vmwriter.writePush(kind, index);
-        } else {
-          this.vmwriter.writePush("constant", c);
-        }
-      }
-    }
   }
 
   compile() {
@@ -217,7 +141,7 @@ class CompilationEngine {
 
     this.getCurrentToken() == ";"
       ? this.vmwriter.writePush("constant", 0)
-      : this.writeExpressionVMCode(this.compileExpression());
+      : this.compileExpression();
 
     this.vmwriter.writeReturn();
     this.advanceToken(); // ;
@@ -227,7 +151,7 @@ class CompilationEngine {
     this.labelId++;
     this.advanceToken(); // if
     this.advanceToken(); // (
-    this.writeExpressionVMCode(this.compileExpression());
+    this.compileExpression();
     this.advanceToken(); // )
     this.advanceToken(); // {
     this.vmwriter.writeIf(`IF_TRUE${this.labelId}`);
@@ -256,7 +180,7 @@ class CompilationEngine {
     this.advanceToken(); // while
     this.advanceToken(); // (
     this.vmwriter.writeLabel(`WHILE_EXP${this.labelId}`);
-    this.writeExpressionVMCode(this.compileExpression());
+    this.compileExpression();
     this.vmwriter.writeIf(`WHILE_IF${this.labelId}`);
     this.vmwriter.writeGoto(`WHILE_END${this.labelId}`);
     this.advanceToken(); // )
@@ -306,7 +230,7 @@ class CompilationEngine {
 
       this.advanceToken(); // first token in expression
 
-      this.writeExpressionVMCode(this.compileExpression());
+      this.compileExpression();
 
       const { kind, index } = this.symboltable.findIdentifier(name);
 
@@ -316,7 +240,7 @@ class CompilationEngine {
       this.advanceToken(); // ]
       this.advanceToken(); // =
 
-      this.writeExpressionVMCode(this.compileExpression());
+      this.compileExpression();
       this.vmwriter.writePop("temp", 0);
       this.vmwriter.writePop("pointer", 1);
       this.vmwriter.writePush("temp", 0);
@@ -328,7 +252,7 @@ class CompilationEngine {
       this.advanceToken(); // identifier
       this.advanceToken(); // =
 
-      this.writeExpressionVMCode(this.compileExpression());
+      this.compileExpression();
 
       const { kind, index } = this.symboltable.findIdentifier(name);
       this.vmwriter.writePop(kind, index);
@@ -355,33 +279,57 @@ class CompilationEngine {
     this.advanceToken(); // )
   }
 
-  /* Below methods need refactoring */
-
   compileExpression() {
-    let exp = [];
-
-    exp.splice(exp.length, 0, ...this.compileTerm());
+    this.compileTerm();
 
     while (VALID_OPERATORS.includes(this.getCurrentToken())) {
-      exp.splice(exp.length, 0, this.getCurrentToken());
+      let cmd;
+      switch (this.getCurrentToken()) {
+        case "+":
+          cmd = "add";
+          break;
+        case "-":
+          cmd = "sub";
+          break;
+        case "*":
+          cmd = "call Math.multiply 2";
+          break;
+        case "/":
+          cmd = "call Math.divide 2";
+          break;
+        case "=":
+          cmd = "eq";
+          break;
+        case ">":
+          cmd = "gt";
+          break;
+        case "<":
+          cmd = "lt";
+          break;
+        case "&":
+          cmd = "and";
+          break;
+        case "|":
+          cmd = "or";
+          break;
+      }
       this.advanceToken();
-      exp.splice(exp.length, 0, ...this.compileTerm());
+      this.compileTerm();
+      this.vmwriter.writeArithmetic(cmd);
     }
-
-    return exp;
   }
 
   compileExpressionList() {
     let nArgs = 0;
 
     if (this.getCurrentToken() != ")") {
-      this.writeExpressionVMCode(this.compileExpression());
+      this.compileExpression();
       nArgs++;
     }
 
     while (this.getCurrentToken() == ",") {
       this.advanceToken(); // ,
-      this.writeExpressionVMCode(this.compileExpression());
+      this.compileExpression();
       nArgs++;
     }
 
@@ -391,73 +339,92 @@ class CompilationEngine {
   compileTerm() {
     switch (this.getCurrentTokenType()) {
       case "integerConstant": {
-        let term = this.getCurrentToken();
+        this.vmwriter.writePush("constant", this.getCurrentToken());
         this.advanceToken();
-        return term;
+        break;
       }
 
-      // case "symbol": {
-      //   let term = [];
-      //   if (this.getCurrentToken() == "(") {
-      //     term.splice(term.length, 0, this.getCurrentToken());
-      //     this.advanceToken();
-      //     term.splice(term.length, 0, ...this.compileExpression());
-      //     term.splice(term.length, 0, this.getCurrentToken());
-      //     this.advanceToken();
-      //     return term;
-      //   } else if (["-", "~"].includes(this.getCurrentToken())) {
-      //     let term = [];
-      //     term.splice(term.length, 0, this.getCurrentToken());
-      //     this.advanceToken();
-      //     term.splice(term.length, 0, ...this.compileTerm());
-      //     return term;
-      //   }
-      // }
+      case "stringConstant": {
+        let str = this.getCurrentToken();
+        this.vmwriter.writePush("constant", str.length);
+        this.vmwriter.writeCall("String.new", 1);
+        for (const char of str) {
+          this.vmwriter.writePush("constant", char.charCodeAt(0));
+          this.vmwriter.writeCall("String.appendChar", 2);
+        }
+        this.advanceToken();
+        break;
+      }
 
-      // case "identifier": {
-      //   switch (this.tokenizer.getLookAhead().token) {
-      //     case "(":
-      //     case ".":
-      //       this.compileSubroutineCall();
-      //       return "functionCall";
+      case "keyword": {
+        switch (this.getCurrentToken()) {
+          case "false":
+          case "null":
+            this.vmwriter.writePush("constant", 0);
+            break;
+          case "true":
+            this.vmwriter.writePush("constant", 0);
+            this.vmwriter.writeArithmetic("not");
+            break;
+        }
+        this.advanceToken();
+        break;
+      }
 
-      //     case "[": {
-      //       let name = this.getCurrentToken();
-      //       this.advanceToken(); // [
-      //       this.advanceToken(); // first token in expression
+      case "symbol": {
+        if (this.getCurrentToken() == "(") {
+          this.advanceToken();
+          this.compileExpression();
+          this.advanceToken();
+          break;
+        }
+        if (["-", "~"].includes(this.getCurrentToken())) {
+          let op = this.getCurrentToken();
+          this.advanceToken();
+          this.compileTerm();
+          switch (op) {
+            case "-":
+              this.vmwriter.writeArithmetic("neg");
+              break;
+            case "~":
+              this.vmwriter.writeArithmetic("not");
+              break;
+          }
+        }
+      }
 
-      //       this.writeExpressionVMCode(this.compileExpression());
+      case "identifier": {
+        switch (this.tokenizer.getLookAhead().token) {
+          case ".":
+            this.compileSubroutineCall();
+            break;
 
-      //       const { kind, index } = this.symboltable.findIdentifier(name);
-      //       this.vmwriter.writePush(kind, index);
-      //       this.vmwriter.writeArithmetic("add");
+          case "[": {
+            let name = this.getCurrentToken();
+            this.advanceToken(); // [
+            this.advanceToken(); // first token in expression
 
-      //       this.vmwriter.writePop("pointer", 1);
-      //       this.vmwriter.writePush("that", 0);
+            this.compileExpression();
 
-      //       this.advanceToken(); // ]
-      //       return [];
-      //     }
+            const { kind, index } = this.symboltable.findIdentifier(name);
+            this.vmwriter.writePush(kind, index);
+            this.vmwriter.writeArithmetic("add");
 
-      //     default:
-      //       let term = "";
-      //       term += this.getCurrentToken(); // identifier
-      //       this.advanceToken();
-      //       return term;
-      //   }
-      // }
+            this.vmwriter.writePop("pointer", 1);
+            this.vmwriter.writePush("that", 0);
 
-      // case "keyword": {
-      //   let term = this.getCurrentToken();
-      //   this.advanceToken();
-      //   return term;
-      // }
+            this.advanceToken(); // ]
+            break;
+          }
 
-      // case "stringConstant": {
-      //   let term = ["stringConstant", this.getCurrentToken()];
-      //   this.advanceToken();
-      //   return term;
-      // }
+          default:
+            const { kind, index } = this.symboltable.findIdentifier(
+              this.getCurrentToken()
+            ); // identifier
+            this.vmwriter.writePush(kind, index);
+            this.advanceToken();
+        }
+      }
     }
   }
 }
