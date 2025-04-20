@@ -1,0 +1,9 @@
+function Dummy.main 1
+push constant 2
+push constant 3
+push constant 8
+call Math.multiply 2  
+add  
+pop local 0
+push constant 0
+return  

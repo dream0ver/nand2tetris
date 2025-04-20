@@ -1,0 +1,7 @@
+class Dummy {
+    function void main(){
+        var int i; 
+        let i = 2+3*8;
+        return;
+    }
+}

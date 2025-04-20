@@ -1,7 +1,7 @@
 const Tokenizer = require("./Tokenizer").Tokenizer;
 const VMWriter = require("./VMWriter").VMWriter;
 const SymbolTable = require("./SymbolTable").SymbolTable;
-const { VALID_OPERATORS, OPERATOR_PRECEDENCE } = require("./Util");
+const { VALID_OPERATORS, INFIX_TO_POSTFIX } = require("./Util");
 
 class CompilationEngine {
   constructor(filepath) {
@@ -24,35 +24,10 @@ class CompilationEngine {
     return this.tokenizer.current.type;
   }
 
-  infixToPostfix(exp) {
-    const stack = [];
-    let postfix = [];
-    for (const c of exp) {
-      if (c === "(") {
-        stack.push(c);
-      } else if (c === ")") {
-        while (stack.length && stack[stack.length - 1] !== "(")
-          postfix.push(stack.pop());
-        stack.pop();
-      } else if (VALID_OPERATORS.includes(c)) {
-        while (
-          stack.length &&
-          VALID_OPERATORS.includes(stack[stack.length - 1]) &&
-          OPERATOR_PRECEDENCE[stack[stack.length - 1]] >= OPERATOR_PRECEDENCE[c]
-        ) {
-          postfix.push(stack.pop());
-        }
-        stack.push(c);
-      } else {
-        postfix.push(c);
-      }
-    }
-    while (stack.length) postfix.push(stack.pop());
-    return postfix;
-  }
-
   writeExpressionVMCode(exp) {
-    exp = this.infixToPostfix(exp.flat(999999999));
+    console.log("infix ", exp);
+    exp = INFIX_TO_POSTFIX(exp);
+    console.log("postfix ", exp);
     if (exp[0] == "functionCall") return;
     if (!exp[0]) return;
     if (exp[0] == "stringConstant") {
@@ -248,20 +223,6 @@ class CompilationEngine {
     this.advanceToken(); // ;
   }
 
-  compileExpression() {
-    let exp = [];
-
-    exp.push(this.compileTerm());
-
-    while (VALID_OPERATORS.includes(this.getCurrentToken())) {
-      exp.push(this.getCurrentToken());
-      this.advanceToken();
-      exp.push(this.compileTerm());
-    }
-
-    return exp;
-  }
-
   compileIf() {
     this.labelId++;
     this.advanceToken(); // if
@@ -305,23 +266,6 @@ class CompilationEngine {
     this.vmwriter.writeGoto(`WHILE_EXP${this.labelId}`);
     this.vmwriter.writeLabel(`WHILE_END${this.labelId}`);
     this.advanceToken(); // }
-  }
-
-  compileExpressionList() {
-    let nArgs = 0;
-
-    if (this.getCurrentToken() != ")") {
-      this.writeExpressionVMCode(this.compileExpression());
-      nArgs++;
-    }
-
-    while (this.getCurrentToken() == ",") {
-      this.advanceToken(); // ,
-      this.writeExpressionVMCode(this.compileExpression());
-      nArgs++;
-    }
-
-    return nArgs;
   }
 
   compileStatements() {
@@ -385,6 +329,7 @@ class CompilationEngine {
       this.advanceToken(); // =
 
       this.writeExpressionVMCode(this.compileExpression());
+
       const { kind, index } = this.symboltable.findIdentifier(name);
       this.vmwriter.writePop(kind, index);
 
@@ -410,6 +355,39 @@ class CompilationEngine {
     this.advanceToken(); // )
   }
 
+  /* Below methods need refactoring */
+
+  compileExpression() {
+    let exp = [];
+
+    exp.splice(exp.length, 0, ...this.compileTerm());
+
+    while (VALID_OPERATORS.includes(this.getCurrentToken())) {
+      exp.splice(exp.length, 0, this.getCurrentToken());
+      this.advanceToken();
+      exp.splice(exp.length, 0, ...this.compileTerm());
+    }
+
+    return exp;
+  }
+
+  compileExpressionList() {
+    let nArgs = 0;
+
+    if (this.getCurrentToken() != ")") {
+      this.writeExpressionVMCode(this.compileExpression());
+      nArgs++;
+    }
+
+    while (this.getCurrentToken() == ",") {
+      this.advanceToken(); // ,
+      this.writeExpressionVMCode(this.compileExpression());
+      nArgs++;
+    }
+
+    return nArgs;
+  }
+
   compileTerm() {
     switch (this.getCurrentTokenType()) {
       case "integerConstant": {
@@ -418,68 +396,68 @@ class CompilationEngine {
         return term;
       }
 
-      case "symbol": {
-        let term = [];
-        if (this.getCurrentToken() == "(") {
-          term.push(this.getCurrentToken());
-          this.advanceToken();
-          term.push(this.compileExpression());
-          term.push(this.getCurrentToken());
-          this.advanceToken();
-          return term;
-        } else if (["-", "~"].includes(this.getCurrentToken())) {
-          let term = [];
-          term.push(this.getCurrentToken());
-          this.advanceToken();
-          term.push(this.compileTerm());
-          return term;
-        }
-      }
+      // case "symbol": {
+      //   let term = [];
+      //   if (this.getCurrentToken() == "(") {
+      //     term.splice(term.length, 0, this.getCurrentToken());
+      //     this.advanceToken();
+      //     term.splice(term.length, 0, ...this.compileExpression());
+      //     term.splice(term.length, 0, this.getCurrentToken());
+      //     this.advanceToken();
+      //     return term;
+      //   } else if (["-", "~"].includes(this.getCurrentToken())) {
+      //     let term = [];
+      //     term.splice(term.length, 0, this.getCurrentToken());
+      //     this.advanceToken();
+      //     term.splice(term.length, 0, ...this.compileTerm());
+      //     return term;
+      //   }
+      // }
 
-      case "identifier": {
-        switch (this.tokenizer.getLookAhead().token) {
-          case "(":
-          case ".":
-            this.compileSubroutineCall();
-            return "functionCall";
+      // case "identifier": {
+      //   switch (this.tokenizer.getLookAhead().token) {
+      //     case "(":
+      //     case ".":
+      //       this.compileSubroutineCall();
+      //       return "functionCall";
 
-          case "[": {
-            let name = this.getCurrentToken();
-            this.advanceToken(); // [
-            this.advanceToken(); // first token in expression
+      //     case "[": {
+      //       let name = this.getCurrentToken();
+      //       this.advanceToken(); // [
+      //       this.advanceToken(); // first token in expression
 
-            this.writeExpressionVMCode(this.compileExpression());
+      //       this.writeExpressionVMCode(this.compileExpression());
 
-            const { kind, index } = this.symboltable.findIdentifier(name);
-            this.vmwriter.writePush(kind, index);
-            this.vmwriter.writeArithmetic("add");
+      //       const { kind, index } = this.symboltable.findIdentifier(name);
+      //       this.vmwriter.writePush(kind, index);
+      //       this.vmwriter.writeArithmetic("add");
 
-            this.vmwriter.writePop("pointer", 1);
-            this.vmwriter.writePush("that", 0);
+      //       this.vmwriter.writePop("pointer", 1);
+      //       this.vmwriter.writePush("that", 0);
 
-            this.advanceToken(); // ]
-            return [];
-          }
+      //       this.advanceToken(); // ]
+      //       return [];
+      //     }
 
-          default:
-            let term = "";
-            term += this.getCurrentToken(); // identifier
-            this.advanceToken();
-            return term;
-        }
-      }
+      //     default:
+      //       let term = "";
+      //       term += this.getCurrentToken(); // identifier
+      //       this.advanceToken();
+      //       return term;
+      //   }
+      // }
 
-      case "keyword": {
-        let term = this.getCurrentToken();
-        this.advanceToken();
-        return term;
-      }
+      // case "keyword": {
+      //   let term = this.getCurrentToken();
+      //   this.advanceToken();
+      //   return term;
+      // }
 
-      case "stringConstant": {
-        let term = ["stringConstant", this.getCurrentToken()];
-        this.advanceToken();
-        return term;
-      }
+      // case "stringConstant": {
+      //   let term = ["stringConstant", this.getCurrentToken()];
+      //   this.advanceToken();
+      //   return term;
+      // }
     }
   }
 }
