@@ -1,6 +1,59 @@
 const fs = require("fs");
 const path = require("path");
-const { VALID_SYMBOLS, VALID_KEYWORDS, VALID_TOKENS } = require("./Util");
+
+const VALID_SYMBOLS = [
+  "{",
+  "}",
+  "(",
+  ")",
+  "[",
+  "]",
+  ".",
+  ",",
+  ";",
+  "+",
+  "-",
+  "*",
+  "/",
+  "&",
+  "|",
+  "<",
+  ">",
+  "=",
+  "~",
+];
+
+const VALID_KEYWORDS = [
+  "class",
+  "method",
+  "function",
+  "constructor",
+  "int",
+  "boolean",
+  "char",
+  "void",
+  "var",
+  "static",
+  "field",
+  "let",
+  "do",
+  "if",
+  "else",
+  "while",
+  "return",
+  "true",
+  "false",
+  "null",
+  "this",
+];
+
+const VALID_TOKENS = {
+  SYMBOL: "symbol",
+  IDENTIFIER: "identifier",
+  KEYWORD: "keyword",
+  STRING_CONST: "stringConstant",
+  INT_CONST: "integerConstant",
+};
 
 class Tokenizer {
   filepath = "";
@@ -26,7 +79,7 @@ class Tokenizer {
   prepareOutputFile() {
     this.output = path.join(
       path.dirname(this.filepath),
-      `${this.filename}T_Compiled.xml`,
+      `${this.filename}T_Compiled.xml`
     );
     fs.writeFileSync(this.output, "", "utf8");
   }
@@ -65,7 +118,7 @@ class Tokenizer {
         return fs.appendFileSync(
           this.output,
           `<${tokenType}>` + " " + `${token}` + " " + `</${tokenType}>` + "\n",
-          "utf-8",
+          "utf-8"
         );
     }
   }

@@ -1,9 +1,0 @@
-class Dummy {
-    function void main(){
-        var Array myArr;
-        let myArr = Array.new(2);
-        let myArr[0] = 69;
-        let myArr[1] = myArr[0] + 44;
-        return;
-    }
-}

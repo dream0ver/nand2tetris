@@ -1,7 +1,8 @@
 const Tokenizer = require("./Tokenizer").Tokenizer;
 const VMWriter = require("./VMWriter").VMWriter;
 const SymbolTable = require("./SymbolTable").SymbolTable;
-const { VALID_OPERATORS } = require("./Util");
+
+const VALID_OPERATORS = ["=", "|", "&", "<", ">", "+", "-", "*", "/", "~"];
 
 class CompilationEngine {
   constructor(filepath) {
