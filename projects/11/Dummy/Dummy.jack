@@ -1,8 +1,8 @@
 class Dummy {
 
     function void main() {
-      var int i;
-      let i = -23;
+      var boolean i;
+      let i = true;
       return;
    }
 }

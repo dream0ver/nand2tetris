@@ -1,6 +1,6 @@
 function Dummy.main 1
-push constant 23
-neg  
+push constant 0
+not  
 pop local 0
 push constant 0
 return  

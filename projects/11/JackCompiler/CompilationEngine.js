@@ -93,6 +93,20 @@ class CompilationEngine {
         }
         this.vmwriter.writeArithmetic(cmd);
         prevOperandCount = 0;
+      } else if (["false", "true", "this"].includes(c)) {
+        /* 
+          this not implemented
+        */
+        switch (c) {
+          case "false":
+          case "null":
+            this.vmwriter.writePush("constant", 0);
+            break;
+          case "true":
+            this.vmwriter.writePush("constant", 0);
+            this.vmwriter.writeArithmetic("not");
+            break;
+        }
       } else {
         prevOperandCount++;
         if (this.symboltable.findIdentifier(c) != null) {
@@ -443,10 +457,11 @@ class CompilationEngine {
         }
       }
 
-      /*  case "keyword": {
-        str = this.appendAdvance(str, "keyword")
-        break
-      } */
+      case "keyword": {
+        let term = this.getCurrentToken();
+        this.advanceToken();
+        return term;
+      }
 
       /*   case "stringConstant": {
         str = this.appendAdvance(str, "stringConstant")
