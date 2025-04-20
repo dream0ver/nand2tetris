@@ -53,8 +53,9 @@ class CompilationEngine {
 
   writeExpressionVMCode(exp) {
     if (exp[0] == "functionCall") return;
-    exp = exp.flat(999999999);
-    exp = this.infixToPostfix(exp);
+    let prevOperandCount = 0;
+    exp = this.infixToPostfix(exp.flat(999999999));
+    console.log(exp);
     for (const c of exp) {
       if (VALID_OPERATORS.includes(c)) {
         let cmd;
@@ -63,7 +64,10 @@ class CompilationEngine {
             cmd = "add";
             break;
           case "-":
-            cmd = "sub";
+            cmd = prevOperandCount == 2 ? "sub" : "neg";
+            break;
+          case "~":
+            cmd = "not";
             break;
           case "*":
             cmd = "call Math.multiply 2";
@@ -88,7 +92,9 @@ class CompilationEngine {
             break;
         }
         this.vmwriter.writeArithmetic(cmd);
+        prevOperandCount = 0;
       } else {
+        prevOperandCount++;
         if (this.symboltable.findIdentifier(c) != null) {
           const { kind, index } = this.symboltable.findIdentifier(c);
           this.vmwriter.writePush(kind, index);
@@ -183,7 +189,7 @@ class CompilationEngine {
 
     this.vmwriter.writeFunction(
       `${this.className}.${this.symboltable.getSubroutineName()}`,
-      this.symboltable.varCount("local"),
+      this.symboltable.varCount("local")
     );
 
     this.compileStatements();
@@ -401,13 +407,13 @@ class CompilationEngine {
           term.push(this.getCurrentToken());
           this.advanceToken();
           return term;
+        } else if (["-", "~"].includes(this.getCurrentToken())) {
+          let term = [];
+          term.push(this.getCurrentToken());
+          this.advanceToken();
+          term.push(this.compileTerm());
+          return term;
         }
-        /*   else if (["-", "~"].includes(this.getCurrentToken())) {
-          term += this.getCurrentToken()
-          this.advanceToken()
-          term += this.compileTerm()
-          return term
-        } */
       }
 
       case "identifier": {

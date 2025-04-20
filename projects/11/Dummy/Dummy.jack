@@ -1,9 +1,8 @@
 class Dummy {
 
     function void main() {
-      var Array myArr;
-      let myArr = Array.new(2);
-      let myArr[1] = 77;
+      var int i;
+      let i = -23;
       return;
    }
 }

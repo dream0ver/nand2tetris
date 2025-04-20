@@ -1,4 +1,4 @@
-const VALID_OPERATORS = ["+", "-", "*", "/", "&", "|", "<", ">", "="];
+const VALID_OPERATORS = ["=", "|", "&", "<", ">", "+", "-", "*", "/", "~"];
 
 const OPERATOR_PRECEDENCE = {
   "=": 1,
@@ -10,6 +10,7 @@ const OPERATOR_PRECEDENCE = {
   "-": 5,
   "*": 6,
   "/": 6,
+  "~": 7,
 };
 
 const VALID_SYMBOLS = [
