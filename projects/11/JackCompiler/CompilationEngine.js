@@ -127,7 +127,7 @@ class CompilationEngine {
     this.advanceToken(); // class
     this.advanceToken(); // identifier
     this.className = this.getCurrentToken();
-    this.advanceToken(); // opening bracket
+    this.advanceToken(); // {
     this.advanceToken();
 
     while (validClassVarPrefix.includes(this.getCurrentToken()))
@@ -136,7 +136,7 @@ class CompilationEngine {
     while (validSubroutinePrefix.includes(this.getCurrentToken()))
       this.compileSubroutine();
 
-    this.advanceToken(); // closing bracket
+    this.advanceToken(); // }
   }
 
   compileClassVarDec() {
@@ -147,7 +147,7 @@ class CompilationEngine {
     this.advanceToken(); // identifier
     name = this.getCurrentToken();
     this.symboltable.define(name, type, kind);
-    this.advanceToken(); // symbol (, or ;)
+    this.advanceToken(); // , or ;
 
     while (this.getCurrentToken() != ";") {
       this.advanceToken(); // identifier
@@ -162,9 +162,9 @@ class CompilationEngine {
   compileSubroutine() {
     let type, name;
 
-    type = this.getCurrentToken(); // keyword (method,constructor,function)
+    type = this.getCurrentToken(); // method or constructor or function
     this.advanceToken(); // return type
-    this.advanceToken(); // subroutine identifier
+    this.advanceToken(); // identifier 
     name = this.getCurrentToken();
     this.symboltable.startSubroutine(name);
 
@@ -172,7 +172,7 @@ class CompilationEngine {
       this.symboltable.define("this", this.className, "argument");
     }
 
-    this.advanceToken(); // symbol (
+    this.advanceToken(); // (
     this.compileParameterList();
     this.advanceToken(); // )
     this.compileSubroutineBody();
@@ -186,15 +186,15 @@ class CompilationEngine {
     while (this.getCurrentToken() != ")") {
       this.advanceToken(); // type
       type = this.getCurrentToken();
-      this.advanceToken(); // argument identifier
+      this.advanceToken(); // identifier 
       name = this.getCurrentToken();
       this.symboltable.define(name, type, "argument");
-      this.advanceToken(); // symbol , or )
+      this.advanceToken(); // , or ) 
     }
   }
 
   compileSubroutineBody() {
-    this.advanceToken(); // symbol {
+    this.advanceToken(); // {
 
     while (this.getCurrentToken() == "var") this.compileVarDec();
 
@@ -205,7 +205,7 @@ class CompilationEngine {
 
     this.compileStatements();
 
-    this.advanceToken(); // symbol }
+    this.advanceToken(); // }
   }
 
   compileVarDec() {
@@ -222,21 +222,21 @@ class CompilationEngine {
       this.advanceToken(); // identifier
       name = this.getCurrentToken();
       this.symboltable.define(name, type, "local");
-      this.advanceToken(); // symbol (, or ;)
+      this.advanceToken(); // , or ;
     }
 
-    this.advanceToken(); // symbol ;
+    this.advanceToken(); // ;
   }
 
   compileReturn() {
-    this.advanceToken(); // return keyword
+    this.advanceToken(); // return 
 
     this.getCurrentToken() == ";"
       ? this.vmwriter.writePush("constant", 0)
       : this.writeExpressionVMCode(this.compileExpression());
 
     this.vmwriter.writeReturn();
-    this.advanceToken(); // symbol ;
+    this.advanceToken(); // ;
   }
 
   compileExpression() {
@@ -255,16 +255,16 @@ class CompilationEngine {
 
   compileIf() {
     this.labelId++;
-    this.advanceToken(); // keyword if
-    this.advanceToken(); // symbol (
+    this.advanceToken(); // if
+    this.advanceToken(); // (
     this.writeExpressionVMCode(this.compileExpression());
-    this.advanceToken(); // symbol )
-    this.advanceToken(); // symbol {
+    this.advanceToken(); // )
+    this.advanceToken(); // {
     this.vmwriter.writeIf(`IF_TRUE${this.labelId}`);
     this.vmwriter.writeGoto(`IF_FALSE${this.labelId}`);
     this.vmwriter.writeLabel(`IF_TRUE${this.labelId}`);
     this.compileStatements();
-    this.advanceToken(); // symbol }
+    this.advanceToken(); // }
 
     if (this.getCurrentToken() == "else") {
       this.vmwriter.writeGoto(`IF_END${this.labelId}`);
@@ -273,29 +273,29 @@ class CompilationEngine {
     this.vmwriter.writeLabel(`IF_FALSE${this.labelId}`);
 
     if (this.getCurrentToken() == "else") {
-      this.advanceToken(); // keyword else
-      this.advanceToken(); // symbol {
+      this.advanceToken(); // else
+      this.advanceToken(); // {
       this.compileStatements();
-      this.advanceToken(); // symbol }
+      this.advanceToken(); // }
       this.vmwriter.writeLabel(`IF_END${this.labelId}`);
     }
   }
 
   compileWhile() {
     this.labelId++;
-    this.advanceToken(); // keyword while
-    this.advanceToken(); // symbol (
+    this.advanceToken(); // while
+    this.advanceToken(); // (
     this.vmwriter.writeLabel(`WHILE_EXP${this.labelId}`);
     this.writeExpressionVMCode(this.compileExpression());
     this.vmwriter.writeIf(`WHILE_IF${this.labelId}`);
     this.vmwriter.writeGoto(`WHILE_END${this.labelId}`);
-    this.advanceToken(); // symbol )
-    this.advanceToken(); // symbol {
+    this.advanceToken(); // )
+    this.advanceToken(); // {
     this.vmwriter.writeLabel(`WHILE_IF${this.labelId}`);
     this.compileStatements();
     this.vmwriter.writeGoto(`WHILE_EXP${this.labelId}`);
     this.vmwriter.writeLabel(`WHILE_END${this.labelId}`);
-    this.advanceToken(); // symbol }
+    this.advanceToken(); // }
   }
 
   compileExpressionList() {
@@ -307,7 +307,7 @@ class CompilationEngine {
     }
 
     while (this.getCurrentToken() == ",") {
-      this.advanceToken(); // symbol ,
+      this.advanceToken(); // ,
       this.writeExpressionVMCode(this.compileExpression());
       nArgs++;
     }
@@ -338,20 +338,20 @@ class CompilationEngine {
   }
 
   compileDo() {
-    this.advanceToken(); // keyword do
+    this.advanceToken(); // do
     this.compileSubroutineCall();
-    this.advanceToken(); // symbol ;
+    this.advanceToken(); // ;
   }
 
   compileLet() {
     let name;
-    this.advanceToken(); // keyword let
+    this.advanceToken(); // let
 
     if (this.tokenizer.getLookAhead().token == "[") {
       name = this.getCurrentToken();
       this.advanceToken(); // [
 
-      this.advanceToken(); // exp start
+      this.advanceToken(); // first token in expression
 
       this.writeExpressionVMCode(this.compileExpression());
 
@@ -361,7 +361,7 @@ class CompilationEngine {
       this.vmwriter.writeArithmetic("add");
 
       this.advanceToken(); // ]
-      this.advanceToken(); // symbol =
+      this.advanceToken(); // =
 
       this.writeExpressionVMCode(this.compileExpression());
       this.vmwriter.writePop("temp", 0);
@@ -369,17 +369,17 @@ class CompilationEngine {
       this.vmwriter.writePush("temp", 0);
       this.vmwriter.writePop("that", 0);
 
-      this.advanceToken(); // symbol ;
+      this.advanceToken(); // ;
     } else {
       name = this.getCurrentToken();
       this.advanceToken(); // identifier
-      this.advanceToken(); // symbol =
+      this.advanceToken(); // =
 
       this.writeExpressionVMCode(this.compileExpression());
       const { kind, index } = this.symboltable.findIdentifier(name);
       this.vmwriter.writePop(kind, index);
 
-      this.advanceToken(); // symbol ;
+      this.advanceToken(); // ;
     }
   }
 
@@ -391,14 +391,14 @@ class CompilationEngine {
 
     if (this.getCurrentToken() == ".") {
       name += this.getCurrentToken();
-      this.advanceToken(); // symbol .
+      this.advanceToken(); // .
       name += this.getCurrentToken();
       this.advanceToken(); // identifier
     }
 
-    this.advanceToken(); // symbol (
+    this.advanceToken(); // (
     this.vmwriter.writeCall(name, this.compileExpressionList());
-    this.advanceToken(); // symbol )
+    this.advanceToken(); // )
   }
 
   compileTerm() {
