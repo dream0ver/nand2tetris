@@ -1,0 +1,9 @@
+class Dummy{
+    function void main(){
+        var int i;
+        while(true){
+            let i =  3;
+        }
+    return;
+    } 
+}

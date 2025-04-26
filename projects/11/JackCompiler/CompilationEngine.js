@@ -182,11 +182,10 @@ class CompilationEngine {
     this.advanceToken(); // (
     this.vmwriter.writeLabel(`WHILE_EXP${this.labelId}`);
     this.compileExpression();
-    this.vmwriter.writeIf(`WHILE_IF${this.labelId}`);
-    this.vmwriter.writeGoto(`WHILE_END${this.labelId}`);
+    this.vmwriter.writeArithmetic("not");
+    this.vmwriter.writeIf(`WHILE_END${this.labelId}`);
     this.advanceToken(); // )
     this.advanceToken(); // {
-    this.vmwriter.writeLabel(`WHILE_IF${this.labelId}`);
     this.compileStatements();
     this.vmwriter.writeGoto(`WHILE_EXP${this.labelId}`);
     this.vmwriter.writeLabel(`WHILE_END${this.labelId}`);
