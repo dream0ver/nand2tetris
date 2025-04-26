@@ -392,6 +392,7 @@ class CompilationEngine {
               break;
           }
         }
+        break;
       }
 
       case "identifier": {
