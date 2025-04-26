@@ -22,11 +22,11 @@ class VMWriter {
   }
 
   writePush(segment, index) {
-    this.write("push", segment, index);
+    this.write("push", segment == "field" ? "this" : segment, index);
   }
 
   writePop(segment, index) {
-    this.write("pop", segment, index);
+    this.write("pop", segment == "field" ? "this" : segment, index);
   }
 
   writeArithmetic(command) {

@@ -278,13 +278,16 @@ class CompilationEngine {
 
   compileSubroutineCall() {
     let name = this.getCurrentToken();
+    let nArgs = 0;
     this.advanceToken(); // identifier
 
     const isMethod = this.symboltable.findIdentifier(name) != null;
 
     if (isMethod) {
-      const { kind, index } = this.symboltable.findIdentifier(name);
+      const { kind, index, type } = this.symboltable.findIdentifier(name);
+      name = type;
       this.vmwriter.writePush(kind, index);
+      nArgs++;
     }
 
     if (this.getCurrentToken() == ".") {
@@ -292,13 +295,14 @@ class CompilationEngine {
       this.advanceToken(); // .
       name += this.getCurrentToken();
       this.advanceToken(); // identifier
+    } else {
+      name = `${this.className}.${name}`;
+      this.vmwriter.writePush("pointer", 0);
+      nArgs++;
     }
 
     this.advanceToken(); // (
-    this.vmwriter.writeCall(
-      name,
-      (isMethod ? 1 : 0) + this.compileExpressionList()
-    );
+    this.vmwriter.writeCall(name, nArgs + this.compileExpressionList());
     this.advanceToken(); // )
   }
 
