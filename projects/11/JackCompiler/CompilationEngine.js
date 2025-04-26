@@ -10,7 +10,8 @@ class CompilationEngine {
     this.tokenizer = new Tokenizer(filepath);
     this.vmwriter = new VMWriter(filepath);
     this.symboltable = new SymbolTable();
-    this.labelId = -1;
+    this.whileLabelId = -1;
+    this.ifLabelId = -1;
   }
 
   advanceToken() {
@@ -76,6 +77,8 @@ class CompilationEngine {
     this.advanceToken(); // identifier
     name = this.getCurrentToken();
     this.symboltable.startSubroutine(name);
+    this.whileLabelId = -1;
+    this.ifLabelId = -1;
 
     if (type == "method") {
       this.symboltable.define("this", this.className, "argument");
@@ -149,46 +152,46 @@ class CompilationEngine {
   }
 
   compileIf() {
-    this.labelId++;
+    const id = ++this.ifLabelId;
     this.advanceToken(); // if
     this.advanceToken(); // (
     this.compileExpression();
     this.advanceToken(); // )
     this.advanceToken(); // {
-    this.vmwriter.writeIf(`IF_TRUE${this.labelId}`);
-    this.vmwriter.writeGoto(`IF_FALSE${this.labelId}`);
-    this.vmwriter.writeLabel(`IF_TRUE${this.labelId}`);
+    this.vmwriter.writeIf(`IF_TRUE${id}`);
+    this.vmwriter.writeGoto(`IF_FALSE${id}`);
+    this.vmwriter.writeLabel(`IF_TRUE${id}`);
     this.compileStatements();
     this.advanceToken(); // }
 
     if (this.getCurrentToken() == "else") {
-      this.vmwriter.writeGoto(`IF_END${this.labelId}`);
+      this.vmwriter.writeGoto(`IF_END${id}`);
     }
 
-    this.vmwriter.writeLabel(`IF_FALSE${this.labelId}`);
+    this.vmwriter.writeLabel(`IF_FALSE${id}`);
 
     if (this.getCurrentToken() == "else") {
       this.advanceToken(); // else
       this.advanceToken(); // {
       this.compileStatements();
       this.advanceToken(); // }
-      this.vmwriter.writeLabel(`IF_END${this.labelId}`);
+      this.vmwriter.writeLabel(`IF_END${id}`);
     }
   }
 
   compileWhile() {
-    this.labelId++;
+    const id = ++this.whileLabelId;
     this.advanceToken(); // while
     this.advanceToken(); // (
-    this.vmwriter.writeLabel(`WHILE_EXP${this.labelId}`);
+    this.vmwriter.writeLabel(`WHILE_EXP${id}`);
     this.compileExpression();
     this.vmwriter.writeArithmetic("not");
-    this.vmwriter.writeIf(`WHILE_END${this.labelId}`);
+    this.vmwriter.writeIf(`WHILE_END${id}`);
     this.advanceToken(); // )
     this.advanceToken(); // {
     this.compileStatements();
-    this.vmwriter.writeGoto(`WHILE_EXP${this.labelId}`);
-    this.vmwriter.writeLabel(`WHILE_END${this.labelId}`);
+    this.vmwriter.writeGoto(`WHILE_EXP${id}`);
+    this.vmwriter.writeLabel(`WHILE_END${id}`);
     this.advanceToken(); // }
   }
 
@@ -218,6 +221,7 @@ class CompilationEngine {
     this.advanceToken(); // do
     this.compileSubroutineCall();
     this.advanceToken(); // ;
+    this.vmwriter.writePop("temp", 0);
   }
 
   compileLet() {
