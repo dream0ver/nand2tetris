@@ -3,11 +3,17 @@ class SymbolTable {
     this.class_table = {};
     this.subroutine_table = {};
     this.subroutine_name = "";
+    this.subroutine_type = "";
   }
 
-  startSubroutine(name) {
+  startSubroutine(name, type) {
     this.subroutine_name = name;
+    this.subroutine_type = type;
     this.subroutine_table = {};
+  }
+
+  getSubroutineType() {
+    return this.subroutine_type;
   }
 
   getSubroutineName() {
@@ -22,7 +28,7 @@ class SymbolTable {
 
   getIndex(kind) {
     const table = this.getTableByKind(kind);
-    return Object.keys(table).filter((key) => table[key].kind == kind).length;
+    return Object.keys(table).filter(key => table[key].kind == kind).length;
   }
 
   define(name, type, kind) {

@@ -76,7 +76,7 @@ class CompilationEngine {
     this.advanceToken(); // return type
     this.advanceToken(); // identifier
     name = this.getCurrentToken();
-    this.symboltable.startSubroutine(name);
+    this.symboltable.startSubroutine(name, type);
     this.whileLabelId = -1;
     this.ifLabelId = -1;
 
@@ -114,6 +114,17 @@ class CompilationEngine {
       `${this.className}.${this.symboltable.getSubroutineName()}`,
       this.symboltable.varCount("local")
     );
+
+    if (this.symboltable.getSubroutineType() == "constructor") {
+      this.vmwriter.writePush("constant", this.symboltable.varCount("field"));
+      this.vmwriter.writeCall("Memory.alloc", 1);
+      this.vmwriter.writePop("pointer", 0);
+    }
+
+    if (this.symboltable.getSubroutineType() == "method") {
+      this.vmwriter.writePush("argument", 0);
+      this.vmwriter.writePop("pointer", 0);
+    }
 
     this.compileStatements();
 
@@ -271,6 +282,11 @@ class CompilationEngine {
 
     const isMethod = this.symboltable.findIdentifier(name) != null;
 
+    if (isMethod) {
+      const { kind, index } = this.symboltable.findIdentifier(name);
+      this.vmwriter.writePush(kind, index);
+    }
+
     if (this.getCurrentToken() == ".") {
       name += this.getCurrentToken();
       this.advanceToken(); // .
@@ -279,7 +295,10 @@ class CompilationEngine {
     }
 
     this.advanceToken(); // (
-    this.vmwriter.writeCall(name, this.compileExpressionList());
+    this.vmwriter.writeCall(
+      name,
+      (isMethod ? 1 : 0) + this.compileExpressionList()
+    );
     this.advanceToken(); // )
   }
 
@@ -370,6 +389,9 @@ class CompilationEngine {
             this.vmwriter.writePush("constant", 0);
             this.vmwriter.writeArithmetic("not");
             break;
+          case "this":
+            this.vmwriter.writePush("pointer", 0);
+            break;
         }
         this.advanceToken();
         break;
@@ -401,6 +423,7 @@ class CompilationEngine {
       case "identifier": {
         switch (this.tokenizer.getLookAhead().token) {
           case ".":
+          case "(":
             this.compileSubroutineCall();
             break;
 
