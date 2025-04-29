@@ -47,6 +47,8 @@ class Main {
         
         do c.dispose();
         do b.dispose();
+
+        do Output.printInt(Memory.getFreelist());
         
         return;
     }

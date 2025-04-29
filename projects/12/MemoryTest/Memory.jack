@@ -1,0 +1,97 @@
+class Memory {
+
+    static Array memory;
+    static Array freeList;
+
+
+    function int getFreelist(){
+        return freeList;
+    }
+
+    function void init() {
+        let memory = 0;
+        let freeList = 2048;      // heapBase
+        let freeList[0] = 14335;  // heapLength
+        let freeList[1] = 0   ;   // nextBlock
+        return;
+    }
+
+    function int peek(int address) {
+        return memory[address];
+    }
+
+    function void poke(int address, int value) {
+        let memory[address] = value;
+        return;
+    }
+
+    function int alloc(int size) {
+        var Array currBlock, prevBlock, nextBlock;
+        let currBlock = freeList; 
+
+        while(currBlock[0]<(size+1)){
+            let prevBlock = currBlock;
+            let currBlock = currBlock[1];
+        }
+
+        if(currBlock=0){
+            do Sys.error(5800);
+            return 5800;
+        }
+
+        if(currBlock[0]=(size+1)){
+            let nextBlock = currBlock[1];
+            let currBlock = currBlock + 1;
+            let prevBlock[1] = nextBlock;
+        }
+
+        else{   
+            let currBlock[0] = currBlock[0] - (size+1);
+            let currBlock = currBlock[0] + 1;
+            let currBlock[0] = size + 1;
+            let currBlock = currBlock + 1;
+        }
+
+        return currBlock;
+    }
+
+    function void deAlloc(Array o) {
+        var Array target, ptr, prevPtr;
+        let target = o - 1;
+
+        let ptr = freeList;
+
+        while((ptr<target)&(ptr>0)){
+            let prevPtr = ptr;
+            let ptr = ptr[1];
+        }
+
+        let target[1] = ptr;
+        let prevPtr[1] = target;
+
+        do Memory.defrag();
+
+        return;
+    }    
+
+    function void defrag(){
+        var Array ptr, temp; 
+        
+        let ptr = freeList;
+
+        while(ptr>0){
+
+            let temp = ptr[1];
+
+            if(temp=(ptr[0]+1)){
+                let ptr[0] = ptr[0] + temp[0];
+                let ptr[1] = temp[1];
+            }
+            else{
+                let ptr = ptr[1];
+            }
+        }
+        
+        return;
+    }
+}
