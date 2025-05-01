@@ -1,0 +1,134 @@
+class String {
+
+    field int strLen, strCapacity;
+    field Array str;
+
+    constructor String new(int maxLength) {
+
+        if(maxLength<1){
+            let maxLength = 1;
+        }
+
+        let strLen = 0;
+        let strCapacity = maxLength;
+        let str = Array.new(maxLength);
+        return this;
+    }
+
+    method void dispose() {
+        do str.dispose();
+        do Memory.deAlloc(this);
+        return;
+    }
+
+    method int length() {
+        return strLen;
+    }
+
+    method char charAt(int j) {
+        return str[j];
+    }
+
+    method void setCharAt(int j, char c) {
+        let str[j] = c;
+        return;
+    }
+
+    method String appendChar(char c) {
+        if(strLen < strCapacity){
+            let str[strLen] = c;
+            let strLen = strLen + 1;
+        }
+        return this;
+    }
+
+    method void eraseLastChar() {
+        if(strLen > 0){
+        let strLen = strLen - 1; 
+        }
+        return;
+    }
+
+    method boolean isNumber(char c){
+        return (c>47) & (c<58);
+    }
+
+    method void clear(){
+        let strLen = 0;
+        return;
+    }
+
+    method int intValue() {
+        var int sum, i;
+        var boolean isNeg;
+
+        let sum = 0;
+        let isNeg = false;
+        let i = 0;
+
+        if(str[i]=45){
+            let isNeg = true;
+            let i = i + 1;
+        }
+
+        while(isNumber(str[i]) & (i < strLen)){
+            let sum = atoi(str[i]) + (sum * 10);
+            let i = i + 1;
+        }
+
+        if(isNeg){
+            return -sum;
+        }
+
+        return sum;
+    }
+
+    method int atoi(char c){
+        return c - 48;
+    }
+
+    method char itoa(int n){
+        return n + 48;
+    }
+
+    method void int2String(int val){
+        var int nextNum; 
+
+        if(val<10){
+            do appendChar(itoa(val));
+        }
+        else{
+            let nextNum = val / 10;
+            do int2String(nextNum);
+            do appendChar(itoa(val - (nextNum * 10)));    
+        }
+
+        return;
+    }
+
+    method void setInt(int val) {
+
+        let strLen = 0;
+
+        if(val<0){
+            let val = -val;
+            do appendChar(45);
+        }
+
+        do int2String(val);
+        
+        return;
+    }
+
+    function char newLine() {
+        return 128;
+    }
+
+    function char backSpace() {
+         return 129;
+    }
+
+    function char doubleQuote() {
+         return 34;
+    }
+}
