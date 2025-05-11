@@ -1,0 +1,212 @@
+class Screen {
+    
+    static boolean inkColor;
+    static int screenBufferSize, maxColumn, maxRow;
+    static Array screen, powersOfTwo;
+
+    function void init() {
+        let screen = 16384;
+        let screenBufferSize = 8192;
+        let maxColumn = 256;
+        let maxRow = 512;
+        let powersOfTwo = Array.new(16);
+        let powersOfTwo[0] = 1;
+        let powersOfTwo[1] = 2;
+        let powersOfTwo[2] = 4;
+        let powersOfTwo[3] = 8;
+        let powersOfTwo[4] = 16;
+        let powersOfTwo[5] = 32;
+        let powersOfTwo[6] = 64;
+        let powersOfTwo[7] = 128;
+        let powersOfTwo[8] = 256;
+        let powersOfTwo[9] = 512;
+        let powersOfTwo[10] = 1024;
+        let powersOfTwo[11] = 2048;
+        let powersOfTwo[12] = 4096;
+        let powersOfTwo[13] = 8192;
+        let powersOfTwo[14] = 16384;
+        let powersOfTwo[15] = 16384 + 16384;
+        let inkColor = true;
+        return;
+    }
+
+    function void clearScreen() {
+        var int i;
+        let i = 0;
+
+        while(i < screenBufferSize){
+            let screen[i] = false;
+            let i = i + 1;
+        }
+
+        return;
+    }
+
+     function void fillScreen() {
+        var int i;
+        let i = 0;
+
+        while(i < screenBufferSize){
+            let screen[i] = true;
+            let i = i + 1;
+        }
+
+        return;
+    }
+
+    function void setColor(boolean b) {
+        let inkColor = b;
+        return;
+    }
+
+    function void drawPixel(int x, int y) {
+        var int address, value;
+         
+        let address = (y * 32) + (x / 16);
+        let value = powersOfTwo[x & 15];
+
+        if(inkColor){
+            let screen[address] = screen[address] | value;
+        }
+        else{
+            let screen[address] = screen[address] & ~value;
+        }
+
+        return;
+    }
+
+    function void drawHorizantalLine(int x1, int x2, int y){
+        var int i;
+        let i = x1;
+
+        while(i < (x2 + 1)){
+            do Screen.drawPixel(i, y);
+            let i = i + 1;
+        }
+
+        return;
+    }
+
+    function void drawVerticalLine(int y1, int y2, int x){
+        var int i;
+        let i = y1;
+
+        while(i < (y2 + 1)){
+            do Screen.drawPixel(x, i);
+            let i = i + 1;
+        }
+
+        return;
+    }
+
+    function void drawSlantLine(int x, int y, int dx, int dy){
+        var int a, b, adyMinusbdx, stepX, stepY;
+        let a = 0;
+        let b = 0;
+        let stepX = 1;
+        let stepY = 1;
+        let adyMinusbdx = 0;
+
+        if(dx<0){
+            let dx = Math.abs(dx);
+            let stepX = -1;
+        }
+
+        if(dy<0){
+            let dy = Math.abs(dy);
+            let stepY = -1;
+        }
+
+        while((a<(dx+1)) & (b<(dy+1))){
+            
+            do Screen.drawPixel(x + (a * stepX), y + (b * stepY));
+
+            if(adyMinusbdx < 0){
+                let a = a + 1;
+                let adyMinusbdx = adyMinusbdx + dy;
+            }else{
+                let b = b + 1;
+                let adyMinusbdx = adyMinusbdx - dx;
+            }
+        }
+
+        return;
+    }
+
+    function void drawLine(int x1, int y1, int x2, int y2) {
+        var int temp, dx, dy;
+
+        if((x1 > x2) | (y1 > y2)){
+            let temp = x1;
+            let x1 = x2;
+            let x2 = temp;
+
+            let temp = y1;
+            let y1 = y2;
+            let y2 = temp;
+        }
+        
+        let dy = y2 - y1;
+        let dx = x2 - x1;
+
+        if(dy = 0){
+            do Screen.drawHorizantalLine(x1, x2, y1);
+        }
+
+        if(dx = 0){
+            do Screen.drawVerticalLine(y1, y2, x1);
+        }
+
+        if(~(dx = 0) & ~(dy = 0)){
+            do Screen.drawSlantLine(x1, y1, dx, dy);
+        }
+
+        return;
+    }
+
+    function void drawRectangle(int x1, int y1, int x2, int y2) {
+        var int i, temp;
+        let i = 0;
+
+         if((x1 > x2) | (y1 > y2)){
+            let temp = x1;
+            let x1 = x2;
+            let x2 = temp;
+
+            let temp = y1;
+            let y1 = y2;
+            let y2 = temp;
+        }
+
+        while((i + y1) < (y2 + 1)){
+            do Screen.drawLine(x1, y1 + i, x2, y1 + i);
+            let i = i + 1;
+        }
+
+        return;
+    }
+
+    function void drawCircle(int x, int y, int r) {
+
+        var int dy, x1, y1, x2, y2; 
+        let dy = -r;
+
+        if(r > 181) {
+            return;
+        }
+
+        while(dy<(r+1)){
+
+            let x1 = x - Math.sqrt((r*r)-(dy*dy));
+            let y1 = y + dy;
+            let x2 = x + Math.sqrt((r*r)-(dy*dy));
+            let y2 = y + dy;
+
+            do Screen.drawLine(x1, y1, x2, y2);
+
+            let dy = dy + 1;
+        }
+
+        return;
+    }
+}
